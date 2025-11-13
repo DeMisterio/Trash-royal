@@ -8,7 +8,7 @@
   "sprite": "Characters/Epstein.png",
   "stats": {
     "health": 1609,
-    "damage": 114,
+    "damage": 314,
     "attackSpeed": 0.83,
     "range": 2.2,
     "speed": 77,
