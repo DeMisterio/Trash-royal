@@ -8,10 +8,10 @@
   "sprite": "Characters/Sins.jpeg",
   "stats": {
     "health": 3936,
-    "damage": 154,
+    "damage": 354,
     "attackSpeed": 1.83,
     "range": 2.2,
-    "speed": 88,
+    "speed": 36,
     "targeting": "air-ground",
     "spawnCount": 1,
     "splashRadius": 0
