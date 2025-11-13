@@ -7,9 +7,9 @@
   "description": "Medium area damage spell.",
   "sprite": "Characters/fireball.png",
   "stats": {
-    "damage": 572,
+    "damage": 1572,
     "towerDamageModifier": 0.35,
-    "radius": 8.5,
+    "radius": 30.5,
     "travelTime": 0.7
   }
 }
