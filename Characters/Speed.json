@@ -3,15 +3,15 @@
   "name": "Speed",
   "type": "troop",
   "rarity": "common",
-  "elixir": 6,
+  "elixir": 4,
   "description": "Auto-generated stats for Speed. Adjust to balance.",
   "sprite": "Characters/Speed.jpg",
   "stats": {
     "health": 1534,
-    "damage": 383,
+    "damage": 683,
     "attackSpeed": 1.27,
     "range": 1.5,
-    "speed": 62,
+    "speed": 90,
     "targeting": "air-ground",
     "spawnCount": 1,
     "splashRadius": 2.6
