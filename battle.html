@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Royale Battle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="battle.css">
+    <script type="module" src="battle.js"></script>
+</head>
+
+<body>
+    <div class="battle-page">
+        <header class="battle-header">
+            <a class="back-link" href="index.html">← Main Menu</a>
+            <button class="button gold" id="battleButton">Loading…</button>
+        </header>
+
+        <div class="battle-board" id="battleModal">
+            <div class="battle-topbar">
+                <div class="crown-counter">
+                    <span class="pill gold">You</span>
+                    <strong id="playerCrowns">0</strong>
+                </div>
+                <div class="battle-timer" id="battleTimer">
+                    <span id="timerValue">3:00</span>
+                    <span class="timer-phase-icon" id="timerPhaseIcon">x1</span>
+                    <div class="opponent-name" id="enemyName">Opponent</div>
+                </div>
+                <div class="crown-counter">
+                    <strong id="enemyCrowns">0</strong>
+                    <span class="pill red">Enemy</span>
+                </div>
+            </div>
+            <div class="phase-banner" id="phaseBanner">DOUBLE ELIXIR</div>
+            <div class="muted" id="battleStatus">Tap Battle to enter the arena.</div>
+            <div class="arena-field" id="arenaField">
+                <div class="river"></div>
+                <div class="bridge left"></div>
+                <div class="bridge right"></div>
+                <div class="deploy-zone"></div>
+                <div class="pocket-zone left" id="pocketLeft"></div>
+                <div class="pocket-zone right" id="pocketRight"></div>
+                <div class="spell-radius" id="spellRadius"></div>
+                <div class="projectile-layer" id="projectileLayer"></div>
+                <div class="tower" data-side="enemy" data-slot="left" style="top:30px; left:80px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="enemy-left"></span></div>
+                </div>
+                <div class="tower" data-side="enemy" data-slot="king" style="top:25px; left:calc(50% - 32px);">
+                    👑
+                    <div class="tower-bar"><span data-tower="enemy-king"></span></div>
+                </div>
+                <div class="tower" data-side="enemy" data-slot="right" style="top:30px; right:80px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="enemy-right"></span></div>
+                </div>
+
+                <div class="tower friendly" data-side="friendly" data-slot="left" style="bottom:30px; left:80px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="friendly-left"></span></div>
+                </div>
+                <div class="tower friendly" data-side="friendly" data-slot="king" style="bottom:25px; left:calc(50% - 32px);">
+                    👑
+                    <div class="tower-bar"><span data-tower="friendly-king"></span></div>
+                </div>
+                <div class="tower friendly" data-side="friendly" data-slot="right" style="bottom:30px; right:80px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="friendly-right"></span></div>
+                </div>
+                <div class="victory-banner" id="battleResult"></div>
+            </div>
+
+            <div class="match-controls">
+                <div style="position: relative;">
+                    <button class="button ghost" id="emoteToggle">💬 Emotes</button>
+                    <div class="emote-panel" id="emotePanel">
+                        <button data-emote="😀">😀</button>
+                        <button data-emote="😎">😎</button>
+                        <button data-emote="😡">😡</button>
+                        <button data-emote="👏">👏</button>
+                        <button data-emote="😢">😢</button>
+                        <button data-emote="👎">👎</button>
+                    </div>
+                </div>
+                <button class="button ghost" id="muteToggle">🔇 Mute</button>
+                <button class="button ghost" id="leaveBattle">⏹ Quit</button>
+            </div>
+
+            <div>
+                <div class="elixir-bar" id="elixirBar"><span class="elixir-fill" id="elixirFill"></span></div>
+                <small class="muted">Elixir: <span id="elixirCount">0</span>/10</small>
+            </div>
+            <div class="battle-hand" id="battleHand"></div>
+            <div class="next-card">Next Card: <span id="nextCard">--</span></div>
+            <div class="floating-card" id="cardDragGhost"></div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+{
+  "id": "hog-rider",
+  "name": "Hog Rider",
+  "type": "troop",
+  "rarity": "rare",
+  "elixir": 4,
+  "description": "Jumps river and rushes for towers.",
+  "sprite": "Characters/hog-rider.png",
+  "stats": {
+    "health": 1696,
+    "damage": 264,
+    "attackSpeed": 1.5,
+    "range": 0.8,
+    "speed": 96,
+    "targeting": "buildings",
+    "spawnCount": 1,
+    "splashRadius": 0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "musketeer",
+  "name": "Musketeer",
+  "type": "troop",
+  "rarity": "rare",
+  "elixir": 4,
+  "description": "Single target sharpshooter.",
+  "sprite": "Characters/musketeer.png",
+  "stats": {
+    "health": 598,
+    "damage": 160,
+    "attackSpeed": 1.1,
+    "range": 6,
+    "speed": 65,
+    "targeting": "air-ground",
+    "spawnCount": 1,
+    "splashRadius": 0
+  }
+}

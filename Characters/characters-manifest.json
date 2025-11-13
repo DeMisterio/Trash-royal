@@ -1,0 +1,76 @@
+{
+  "version": 1763067937017,
+  "characters": [
+    "67",
+    "Epstein",
+    "Sins",
+    "Speed",
+    "archers",
+    "baby-dragon",
+    "diddy",
+    "fireball",
+    "giant",
+    "hog-rider",
+    "knight",
+    "minions",
+    "musketeer"
+  ],
+  "images": [
+    {
+      "base": "67",
+      "ext": ".png"
+    },
+    {
+      "base": "archers",
+      "ext": ".png"
+    },
+    {
+      "base": "baby-dragon",
+      "ext": ".png"
+    },
+    {
+      "base": "DDestroyer",
+      "ext": ".jpg"
+    },
+    {
+      "base": "diddy",
+      "ext": ".avif"
+    },
+    {
+      "base": "Epstein",
+      "ext": ".png"
+    },
+    {
+      "base": "fireball",
+      "ext": ".png"
+    },
+    {
+      "base": "giant",
+      "ext": ".png"
+    },
+    {
+      "base": "hog-rider",
+      "ext": ".png"
+    },
+    {
+      "base": "knight",
+      "ext": ".png"
+    },
+    {
+      "base": "minions",
+      "ext": ".png"
+    },
+    {
+      "base": "musketeer",
+      "ext": ".png"
+    },
+    {
+      "base": "Sins",
+      "ext": ".jpeg"
+    },
+    {
+      "base": "Speed",
+      "ext": ".jpg"
+    }
+  ]
+}

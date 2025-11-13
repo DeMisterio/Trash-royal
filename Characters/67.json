@@ -1,0 +1,19 @@
+{
+  "id": "67",
+  "name": "67",
+  "type": "troop",
+  "rarity": "legendary",
+  "elixir": 2,
+  "description": "Auto-generated stats for 67. Adjust to balance.",
+  "sprite": "Characters/67.png",
+  "stats": {
+    "health": 1122,
+    "damage": 249,
+    "attackSpeed": 1.77,
+    "range": 2,
+    "speed": 52,
+    "targeting": "ground",
+    "spawnCount": 3,
+    "splashRadius": 0
+  }
+}

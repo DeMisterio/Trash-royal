@@ -1,0 +1,19 @@
+{
+  "id": "giant",
+  "name": "Giant",
+  "type": "troop",
+  "rarity": "rare",
+  "elixir": 5,
+  "description": "Slow but mighty siege unit that targets buildings.",
+  "sprite": "Characters/giant.png",
+  "stats": {
+    "health": 3344,
+    "damage": 211,
+    "attackSpeed": 1.5,
+    "range": 0.8,
+    "speed": 40,
+    "targeting": "buildings",
+    "spawnCount": 1,
+    "splashRadius": 0
+  }
+}

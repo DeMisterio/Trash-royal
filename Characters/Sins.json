@@ -1,0 +1,19 @@
+{
+  "id": "Sins",
+  "name": "Sins",
+  "type": "troop",
+  "rarity": "legendary",
+  "elixir": 4,
+  "description": "Auto-generated stats for Sins. Adjust to balance.",
+  "sprite": "Characters/Sins.jpeg",
+  "stats": {
+    "health": 3936,
+    "damage": 154,
+    "attackSpeed": 1.83,
+    "range": 2.2,
+    "speed": 88,
+    "targeting": "air-ground",
+    "spawnCount": 3,
+    "splashRadius": 0
+  }
+}

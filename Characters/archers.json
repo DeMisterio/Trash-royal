@@ -1,0 +1,19 @@
+{
+  "id": "archers",
+  "name": "Archers",
+  "type": "troop",
+  "rarity": "common",
+  "elixir": 3,
+  "description": "Twin archers with reliable ranged DPS.",
+  "sprite": "Characters/archers.png",
+  "stats": {
+    "health": 304,
+    "damage": 107,
+    "attackSpeed": 1.2,
+    "range": 5,
+    "speed": 60,
+    "targeting": "air-ground",
+    "spawnCount": 2,
+    "splashRadius": 0
+  }
+}

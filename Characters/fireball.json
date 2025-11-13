@@ -1,0 +1,15 @@
+{
+  "id": "fireball",
+  "name": "Fireball",
+  "type": "spell",
+  "rarity": "rare",
+  "elixir": 4,
+  "description": "Medium area damage spell.",
+  "sprite": "Characters/fireball.png",
+  "stats": {
+    "damage": 572,
+    "towerDamageModifier": 0.35,
+    "radius": 8.5,
+    "travelTime": 0.7
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "diddy",
+  "name": "Diddy",
+  "type": "troop",
+  "rarity": "common",
+  "elixir": 3,
+  "description": "Auto-generated card definition for diddy. Please edit values as needed.",
+  "sprite": "Characters/diddy.avif",
+  "stats": {
+    "health": 500,
+    "damage": 100,
+    "attackSpeed": 1.2,
+    "range": 1.5,
+    "speed": 60,
+    "targeting": "ground",
+    "spawnCount": 1,
+    "splashRadius": 0
+  }
+}

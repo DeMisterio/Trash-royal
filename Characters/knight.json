@@ -1,0 +1,19 @@
+{
+  "id": "knight",
+  "name": "Knight",
+  "type": "troop",
+  "rarity": "common",
+  "elixir": 3,
+  "description": "A dependable melee fighter with solid health.",
+  "sprite": "Characters/knight.png",
+  "stats": {
+    "health": 1600,
+    "damage": 150,
+    "attackSpeed": 1.1,
+    "range": 0.8,
+    "speed": 52,
+    "targeting": "ground",
+    "spawnCount": 1,
+    "splashRadius": 0
+  }
+}

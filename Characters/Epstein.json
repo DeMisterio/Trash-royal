@@ -1,0 +1,19 @@
+{
+  "id": "Epstein",
+  "name": "Epstein",
+  "type": "troop",
+  "rarity": "rare",
+  "elixir": 4,
+  "description": "Auto-generated stats for Epstein. Adjust to balance.",
+  "sprite": "Characters/Epstein.png",
+  "stats": {
+    "health": 1609,
+    "damage": 114,
+    "attackSpeed": 0.83,
+    "range": 2.2,
+    "speed": 67,
+    "targeting": "air-ground",
+    "spawnCount": 3,
+    "splashRadius": 0
+  }
+}

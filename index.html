@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Royale Web Prototype</title>
+    <link rel="icon" type="image/png" href="../sandbox.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --royal-blue: #1b2a52;
+            --panel-blue: #23376d;
+            --panel-dark: #14203d;
+            --accent-gold: #facf4c;
+            --accent-green: #66d36e;
+            --accent-red: #ff6262;
+            --accent-purple: #a15bff;
+            --text-light: #f4f8ff;
+            --text-muted: #a9b6d8;
+            --card-common: #9fa3ad;
+            --card-rare: #ff9c35;
+            --card-epic: #b55bff;
+            --card-legendary: #55f0ff;
+            --arena-gradient: linear-gradient(180deg, #3b6cb3 0%, #7cc7f1 45%, #5c9f5d 65%, #3c7137 100%);
+            font-size: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top, #264391, #0c1224 60%);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .app-shell {
+            width: min(460px, 100%);
+            background: rgba(8, 12, 27, 0.92);
+            border-radius: 28px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        header.top-bar {
+            background: linear-gradient(135deg, #20397f, #1a2757);
+            padding: 1rem 1.25rem 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .player-profile {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        .player-meta h1 {
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .player-meta small {
+            color: var(--text-muted);
+        }
+
+        .currencies {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .currency-chip {
+            background: rgba(0, 0, 0, 0.35);
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .currency-chip span.icon {
+            font-size: 1rem;
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem 1.25rem 6rem;
+        }
+
+        .tab {
+            display: none;
+        }
+
+        .tab.active {
+            display: block;
+        }
+
+        .panel {
+            background: var(--panel-blue);
+            border-radius: 22px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .arena-hero {
+            background: var(--arena-gradient);
+            min-height: 200px;
+            border-radius: 24px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .arena-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url('https://static.wikia.nocookie.net/clashroyale/images/4/47/Training_Camp_Arena.png/revision/latest/scale-to-width-down/400') center/cover;
+            opacity: 0.35;
+            filter: saturate(0.7);
+            z-index: 0;
+        }
+
+        .arena-hero * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .trophy-road {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 999px;
+            background: rgba(12, 18, 36, 0.58);
+            padding: 0.35rem 0.7rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            gap: 0.35rem;
+        }
+
+        .trophy-progress {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .trophy-progress span {
+            display: block;
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ffcb2d, #ff883d);
+            transition: width 0.4s ease;
+        }
+
+        .chest-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .chest-card {
+            background: rgba(11, 21, 48, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-height: 120px;
+        }
+
+        .chest-type {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .timer {
+            font-size: 0.85rem;
+            color: var(--accent-gold);
+        }
+
+        .chest-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .button {
+            border: none;
+            border-radius: 999px;
+            padding: 0.45rem 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+
+        .button:active {
+            transform: scale(0.96);
+        }
+
+        .button.gold {
+            background: linear-gradient(135deg, #ffcf4a, #f5a623);
+            color: #2f1b00;
+            box-shadow: 0 8px 18px rgba(245, 166, 35, 0.35);
+        }
+
+        .button.green {
+            background: linear-gradient(135deg, #6de07f, #30a44a);
+            color: #041305;
+        }
+
+        .button.ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: var(--text-light);
+        }
+
+        .battle-cta {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .battle-cta .button {
+            width: 80%;
+            font-size: 1.1rem;
+            padding: 0.85rem 0;
+            text-transform: uppercase;
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.5rem 1rem 1rem;
+            background: linear-gradient(180deg, rgba(3, 5, 13, 0), rgba(3, 5, 13, 0.95));
+            display: flex;
+            justify-content: space-between;
+            gap: 0.35rem;
+        }
+
+        .nav-button {
+            flex: 1;
+            border: none;
+            border-radius: 18px;
+            padding: 0.65rem 0.35rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 500;
+            font-size: 0.78rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            transition: color 0.2s ease, background 0.2s ease;
+        }
+
+        .nav-button.active {
+            background: rgba(250, 207, 76, 0.25);
+            color: var(--accent-gold);
+        }
+
+        .nav-button span.icon {
+            font-size: 1.2rem;
+        }
+
+        /* Cards tab */
+        .deck-list {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-tile {
+            aspect-ratio: 0.78/1;
+            border-radius: 16px;
+            padding: 0.35rem;
+            background: rgba(0, 0, 0, 0.35);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s ease, border 0.2s ease;
+        }
+
+        .card-tile:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-tile.selected {
+            border-color: var(--accent-purple);
+        }
+
+        .card-tile.empty-slot {
+            background: rgba(0, 0, 0, 0.15);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            color: var(--text-muted);
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .card-tile.empty-slot:hover {
+            transform: none;
+        }
+
+        .card-cost {
+            align-self: flex-start;
+            background: rgba(13, 1, 34, 0.75);
+            border-radius: 999px;
+            padding: 0.15rem 0.4rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .card-art {
+            flex: 1;
+            display: grid;
+            place-items: center;
+            font-size: 2rem;
+        }
+
+        .card-art img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .card-art.small {
+            height: 48px;
+        }
+
+        .card-art.small img {
+            width: auto;
+            max-height: 48px;
+        }
+
+        .emoji-art {
+            font-size: 2rem;
+        }
+
+        .card-name {
+            font-size: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .card-info-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text-light);
+            cursor: pointer;
+        }
+
+        .card-info-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .rarity-common {
+            background: linear-gradient(180deg, #5e636f, #3e414a);
+        }
+
+        .rarity-rare {
+            background: linear-gradient(180deg, #ffb347, #ff8c00);
+        }
+
+        .rarity-epic {
+            background: linear-gradient(180deg, #a450f6, #5d26c1);
+        }
+
+        .rarity-legendary {
+            background: linear-gradient(180deg, #5efcff, #29abe2);
+        }
+
+        .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.45rem;
+        }
+
+        .collection-card.locked {
+            filter: grayscale(0.95);
+            opacity: 0.5;
+        }
+
+        .deck-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            align-items: center;
+        }
+
+        .avg-elixir {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        /* Shop */
+        .offer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .offer-card {
+            background: rgba(10, 14, 32, 0.9);
+            border-radius: 20px;
+            padding: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .offer-card h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .offer-card p {
+            margin: 0.15rem 0 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Social */
+        .clan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .clan-chat {
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-right: 0.25rem;
+        }
+
+        .chat-entry {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        .chat-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .chat-actions {
+            margin-top: 0.35rem;
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        /* Events */
+        .event-card {
+            border-radius: 20px;
+            padding: 0.9rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 0.6rem;
+        }
+
+        .event-card strong {
+            font-size: 1rem;
+        }
+
+        /* Battle modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 20;
+            padding: 1rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.hidden {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .battle-board {
+            width: min(480px, 100%);
+            background: radial-gradient(circle at top, #1f3fa5, #0a1838 70%);
+            border-radius: 28px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .battle-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .battle-timer {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        .battle-timer .opponent-name {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .crown-counter {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-weight: 600;
+        }
+
+        .arena-field {
+            position: relative;
+            border-radius: 24px;
+            background: linear-gradient(180deg, #2b5aa2 0%, #5cadf2 35%, #4f9653 60%, #3c7b40 100%);
+            height: 320px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .arena-field.overtime-warning {
+            animation: pulse-border 0.9s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% {
+                box-shadow: 0 0 0 rgba(255, 98, 98, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(255, 98, 98, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 0 rgba(255, 98, 98, 0.4);
+            }
+        }
+
+        .arena-field::before,
+        .arena-field::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            background: rgba(255, 255, 255, 0.35);
+            height: 100%;
+            z-index: 1;
+        }
+
+        .arena-field::after {
+            width: 100%;
+            height: 4px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .tower {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            transition: opacity 0.2s ease;
+        }
+
+        .tower.destroyed {
+            opacity: 0.2;
+            filter: grayscale(1);
+        }
+
+        .tower.activated {
+            box-shadow: 0 0 12px rgba(109, 228, 255, 0.7);
+        }
+
+        .tower-bar {
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            width: 56px;
+            height: 6px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 999px;
+        }
+
+        .tower-bar span {
+            display: block;
+            height: 100%;
+            width: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #6de07f, #2f9c36);
+            transition: width 0.3s ease;
+        }
+
+        .friendly { color: #6de4ff; }
+        .enemy { color: #ff7676; }
+
+        .deploy-zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            top: 50%;
+            background: rgba(109, 228, 255, 0.12);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .arena-field.card-ready .deploy-zone {
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .arena-field.spell-ready .deploy-zone {
+            background: rgba(255, 152, 0, 0.2);
+        }
+
+        .arena-field.invalid-target .deploy-zone {
+            background: rgba(255, 83, 83, 0.25);
+        }
+
+        .arena-field .river {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 48px;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, #0b9ed1, #1ccad8, #0b9ed1);
+            opacity: 0.85;
+            z-index: 0;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .bridge {
+            position: absolute;
+            width: 84px;
+            height: 48px;
+            background: linear-gradient(90deg, #573a2c, #7a513d);
+            border-radius: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .bridge::after {
+            content: "";
+            position: absolute;
+            inset: 6px;
+            border-radius: 14px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .bridge.left {
+            left: 20%;
+        }
+
+        .bridge.right {
+            right: 20%;
+        }
+
+        .phase-banner {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: rgba(0, 0, 0, 0.65);
+            padding: 0.35rem 1rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+
+        .phase-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .pocket-zone {
+            position: absolute;
+            top: 0;
+            width: 33.33%;
+            height: 50%;
+            opacity: 0;
+            background: rgba(255, 194, 41, 0.18);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .pocket-zone.left {
+            left: 0;
+        }
+
+        .pocket-zone.right {
+            right: 0;
+        }
+
+        .pocket-zone.active {
+            opacity: 1;
+        }
+
+        .unit {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #0a0f1c;
+        }
+
+        .unit.friendly {
+            background: #6de4ff;
+        }
+
+        .unit.enemy {
+            background: #ff7676;
+        }
+
+        .unit img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .battle-hand {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: space-between;
+        }
+
+        .battle-card {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 18px;
+            padding: 0.5rem;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            cursor: pointer;
+            opacity: 1;
+            transition: border 0.2s ease, opacity 0.2s ease;
+        }
+
+        .battle-card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .battle-card.selected {
+            border-color: var(--accent-purple);
+        }
+
+        .battle-card {
+            position: relative;
+        }
+
+        .battle-card .card-cooldown {
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .next-card {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .elixir-bar {
+            position: relative;
+            height: 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .elixir-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #6927da, #c24bff);
+            transition: width 0.3s ease;
+        }
+
+        .elixir-bar.glow {
+            box-shadow: 0 0 12px rgba(194, 75, 255, 0.8);
+        }
+
+        .elixir-bar.double {
+            border: 1px solid rgba(255, 207, 76, 0.45);
+        }
+
+        .elixir-bar.full {
+            animation: pulse-elixir 1.2s infinite;
+        }
+
+        @keyframes pulse-elixir {
+            0% {
+                box-shadow: 0 0 5px rgba(171, 27, 165, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 12px rgba(171, 27, 165, 1);
+            }
+
+            100% {
+                box-shadow: 0 0 5px rgba(171, 27, 165, 0.5);
+            }
+        }
+
+        .emote-panel {
+            display: none;
+            position: absolute;
+            bottom: 110px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.65);
+            border-radius: 16px;
+            padding: 0.35rem;
+            gap: 0.35rem;
+        }
+
+        .emote-panel button {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .emote-panel.active {
+            display: flex;
+        }
+
+        .victory-banner {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .victory-banner.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Settings */
+        .settings-panel {
+            width: min(360px, 90%);
+            background: var(--panel-blue);
+            border-radius: 24px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .settings-panel h3 {
+            margin-top: 0;
+        }
+
+        .toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .toggle input {
+            transform: scale(1.2);
+        }
+
+        .card-modal {
+            width: min(380px, 90%);
+            background: var(--panel-blue);
+            border-radius: 24px;
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-modal header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-modal h3 {
+            margin: 0;
+        }
+
+        .card-modal .card-summary {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-modal .card-summary .card-portrait {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.35);
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-modal .card-summary .card-portrait img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin: 0.5rem 0 1rem;
+        }
+
+        .card-stats span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .card-modal .actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        /* Utility */
+        .muted {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .pill {
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .pill.gold {
+            background: rgba(250, 207, 76, 0.2);
+            color: var(--accent-gold);
+        }
+
+        .pill.green {
+            background: rgba(110, 215, 114, 0.2);
+            color: var(--accent-green);
+        }
+
+        .pill.purple {
+            background: rgba(161, 91, 255, 0.2);
+            color: var(--accent-purple);
+        }
+
+        .flex {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timer-phase-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 207, 76, 0.2);
+            color: var(--accent-gold);
+            border-radius: 999px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            padding: 0 0.45rem;
+            margin-left: 0.35rem;
+        }
+
+        .battle-timer.double {
+            color: var(--accent-gold);
+        }
+
+        .battle-timer.overtime {
+            color: #ff9c35;
+        }
+
+        .floating-card {
+            position: fixed;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+            transition: opacity 0.1s ease;
+        }
+
+        .floating-card.show {
+            opacity: 1;
+        }
+
+        .projectile {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff, #ff7e00);
+            box-shadow: 0 0 10px rgba(255, 126, 0, 0.7);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .spell-radius {
+            position: absolute;
+            border: 2px dashed rgba(255, 200, 0, 0.85);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+        }
+
+        .spell-radius.show {
+            display: block;
+        }
+
+        .summon-fx {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+            animation: summon 0.4s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes summon {
+            from {
+                opacity: 0;
+                transform: scale(0.4);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 540px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            header.top-bar {
+                flex-direction: column;
+            }
+
+            .currencies {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="top-bar">
+            <div class="player-profile">
+                <div class="avatar">CR</div>
+                <div class="player-meta">
+                    <h1 id="playerName">Player</h1>
+                    <small id="playerLevel">Level 1</small>
+                    <div class="flex" style="gap:0.35rem; font-size:0.8rem; color:var(--accent-gold);">
+                        <span>🏆</span>
+                        <span id="trophyCount">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="currencies">
+                <div class="currency-chip">
+                    <span class="icon">🪙</span>
+                    <span id="goldCount">0</span>
+                </div>
+                <div class="currency-chip">
+                    <span class="icon">💎</span>
+                    <span id="gemCount">0</span>
+                </div>
+            </div>
+            <button class="button ghost" id="settingsButton" aria-label="Settings">⚙️</button>
+        </header>
+
+        <main>
+            <section class="tab battle-tab active" data-tab="battle">
+                <div class="arena-hero">
+                    <div class="trophy-road">
+                        <span class="pill gold">Trophy Road</span>
+                        <div class="trophy-progress">
+                            <span id="trophyProgress"></span>
+                        </div>
+                        <span id="nextArena">Arena 1</span>
+                    </div>
+                    <div class="battle-cta">
+                        <a class="button gold" href="battle.html">Battle!</a>
+                        <small class="muted">Opens the dedicated battle screen.</small>
+                    </div>
+                    <div class="muted">Tap Battle to enter the arena. Use chests below to manage rewards.</div>
+                </div>
+
+                <div class="panel">
+                    <h2>Chest Slots</h2>
+                    <div class="chest-grid" id="chestGrid"></div>
+                </div>
+
+                <div class="panel">
+                    <h2>Quick Tasks</h2>
+                    <div class="flex" style="justify-content: space-between;">
+                        <div>
+                            <strong>Daily Goals</strong>
+                            <p class="muted">Win battles, open chests, donate cards.</p>
+                        </div>
+                        <button class="button ghost" id="refreshTasks">Refresh</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab cards-tab" data-tab="cards">
+                <div class="panel">
+                    <h2>Battle Deck</h2>
+                    <div class="deck-list" id="deckList"></div>
+                    <div class="deck-meta">
+                        <span>Average Elixir</span>
+                        <span class="avg-elixir" id="avgElixir">0.0</span>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h2>Collection</h2>
+                    <div class="collection-grid" id="collectionGrid"></div>
+                </div>
+            </section>
+
+            <section class="tab shop-tab" data-tab="shop">
+                <div class="panel">
+                    <h2>Featured</h2>
+                    <div class="offer-card" id="passRoyaleOffer">
+                        <div>
+                            <h3>Pass Royale</h3>
+                            <p>Unlock bonus rewards, auto chest queue, and emotes.</p>
+                        </div>
+                        <button class="button gold" data-offer="pass">Unlock</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h2>Daily Deals</h2>
+                    <div class="offer-list" id="shopOffers"></div>
+                </div>
+            </section>
+
+            <section class="tab social-tab" data-tab="social">
+                <div class="panel">
+                    <h2>Clan</h2>
+                    <div class="clan-header">
+                        <div>
+                            <strong id="clanName">Code Crushers</strong>
+                            <p class="muted" id="clanDesc">Friendly clan focused on learning builds.</p>
+                        </div>
+                        <span class="pill purple" id="clanScore">0</span>
+                    </div>
+                    <button class="button green" id="requestCardsButton">Request Cards</button>
+                    <small class="muted" id="requestCooldown"></small>
+                    <div class="clan-chat" id="clanChat"></div>
+                    <form id="chatForm" class="flex" style="margin-top:0.75rem;">
+                        <input type="text" id="chatInput" placeholder="Send a message" style="flex:1; border-radius:14px; border:none; padding:0.5rem 0.75rem;">
+                        <button class="button gold" type="submit">Send</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="tab events-tab" data-tab="events">
+                <div class="panel">
+                    <h2>Active Events</h2>
+                    <div id="eventsList"></div>
+                </div>
+                <div class="panel">
+                    <h2>Character Data</h2>
+                    <div id="characterData"></div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <button class="nav-button active" data-tab-target="battle">
+                <span class="icon">⚔️</span>
+                Battle
+            </button>
+            <button class="nav-button" data-tab-target="cards">
+                <span class="icon">🃏</span>
+                Cards
+            </button>
+            <button class="nav-button" data-tab-target="shop">
+                <span class="icon">🏪</span>
+                Shop
+            </button>
+            <button class="nav-button" data-tab-target="social">
+                <span class="icon">👥</span>
+                Social
+            </button>
+            <button class="nav-button" data-tab-target="events">
+                <span class="icon">🎉</span>
+                Events
+            </button>
+        </nav>
+    </div>
+
+    <section class="modal hidden" id="battleModal" aria-hidden="true">
+        <div class="battle-board">
+            <div class="battle-topbar">
+                <div class="crown-counter">
+                    <span class="pill gold">You</span>
+                    <strong id="playerCrowns">0</strong>
+                </div>
+                <div class="battle-timer" id="battleTimer">
+                    <span id="timerValue">3:00</span>
+                    <span class="timer-phase-icon" id="timerPhaseIcon">x1</span>
+                    <div class="opponent-name" id="enemyName">Opponent</div>
+                </div>
+                <div class="crown-counter">
+                    <strong id="enemyCrowns">0</strong>
+                    <span class="pill red">Enemy</span>
+                </div>
+            </div>
+            <div class="phase-banner" id="phaseBanner">DOUBLE ELIXIR</div>
+            <div class="muted" id="battleStatus">Deploy troops to destroy enemy towers.</div>
+            <div class="arena-field" id="arenaField">
+                <div class="river"></div>
+                <div class="bridge left"></div>
+                <div class="bridge right"></div>
+                <div class="deploy-zone"></div>
+                <div class="pocket-zone left" id="pocketLeft"></div>
+                <div class="pocket-zone right" id="pocketRight"></div>
+                <div class="spell-radius" id="spellRadius"></div>
+                <div class="projectile-layer" id="projectileLayer"></div>
+                <div class="tower" data-side="enemy" data-slot="left" style="top:18px; left:40px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="enemy-left"></span></div>
+                </div>
+                <div class="tower" data-side="enemy" data-slot="king" style="top:16px; left:calc(50% - 24px);">
+                    👑
+                    <div class="tower-bar"><span data-tower="enemy-king"></span></div>
+                </div>
+                <div class="tower" data-side="enemy" data-slot="right" style="top:18px; right:40px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="enemy-right"></span></div>
+                </div>
+
+                <div class="tower friendly" data-side="friendly" data-slot="left" style="bottom:18px; left:40px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="friendly-left"></span></div>
+                </div>
+                <div class="tower friendly" data-side="friendly" data-slot="king" style="bottom:16px; left:calc(50% - 24px);">
+                    👑
+                    <div class="tower-bar"><span data-tower="friendly-king"></span></div>
+                </div>
+                <div class="tower friendly" data-side="friendly" data-slot="right" style="bottom:18px; right:40px;">
+                    🏰
+                    <div class="tower-bar"><span data-tower="friendly-right"></span></div>
+                </div>
+                <div class="victory-banner" id="battleResult"></div>
+            </div>
+            <div class="flex" style="justify-content: space-between;">
+                <div style="position: relative;">
+                    <button class="button ghost" id="emoteToggle">💬 Emotes</button>
+                    <div class="emote-panel" id="emotePanel">
+                        <button data-emote="😀">😀</button>
+                        <button data-emote="😎">😎</button>
+                        <button data-emote="😡">😡</button>
+                        <button data-emote="👏">👏</button>
+                    </div>
+                </div>
+                <button class="button ghost" id="muteToggle">🔇 Mute</button>
+                <button class="button red button ghost" id="leaveBattle">⏹ Quit</button>
+            </div>
+            <div>
+                <div class="elixir-bar" id="elixirBar"><span class="elixir-fill" id="elixirFill"></span></div>
+                <small class="muted">Elixir: <span id="elixirCount">0</span>/10</small>
+            </div>
+            <div class="battle-hand" id="battleHand"></div>
+            <div class="next-card">Next Card: <span id="nextCard">--</span></div>
+            <div class="floating-card" id="cardDragGhost"></div>
+        </div>
+    </section>
+
+    <section class="modal hidden" id="settingsModal" aria-hidden="true">
+        <div class="settings-panel">
+            <h3>Settings</h3>
+            <div class="toggle">
+                <span>Sound</span>
+                <input type="checkbox" checked>
+            </div>
+            <div class="toggle">
+                <span>Notifications</span>
+                <input type="checkbox" checked>
+            </div>
+            <div class="toggle">
+                <span>Haptics</span>
+                <input type="checkbox">
+            </div>
+            <button class="button gold" id="closeSettings" style="width:100%; margin-top:0.75rem;">Close</button>
+        </div>
+    </section>
+
+    <section class="modal hidden" id="cardModal" aria-hidden="true">
+        <div class="card-modal">
+            <header>
+                <h3 id="cardModalTitle">Card</h3>
+                <button class="button ghost" id="closeCardModal" aria-label="Close card details">✕</button>
+            </header>
+            <div class="card-summary">
+                <div class="card-portrait" id="cardModalArt"></div>
+                <div>
+                    <div class="pill purple" id="cardModalRarity">Common</div>
+                    <p class="muted" id="cardModalDesc">Description</p>
+                </div>
+            </div>
+            <div class="card-stats" id="cardModalStats"></div>
+            <div class="actions">
+                <button class="button ghost" id="cardUseButton">Use</button>
+                <button class="button gold" id="cardUpgradeButton">Upgrade</button>
+            </div>
+            <small class="muted" id="cardUpgradeHint"></small>
+        </div>
+    </section>
+
+    <template id="chatEntryTemplate">
+        <div class="chat-entry">
+            <div class="chat-meta"></div>
+            <div class="chat-text"></div>
+            <div class="chat-actions"></div>
+        </div>
+    </template>
+
+    <script src="tools/generateCharacters.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
