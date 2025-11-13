@@ -974,6 +974,16 @@ function updateUnits(delta) {
         const newX = unit.x + moveX;
         const newY = unit.y + moveY;
 
+        // CR rule: units are NEVER allowed to move backward
+        const goingBackwards =
+          (unit.side === 'friendly' && newY < unit.y) ||
+          (unit.side === 'enemy' && newY > unit.y);
+
+        if (goingBackwards) {
+          unit.path = findPathToTarget(unit);
+          unit.currentPathIndex = 0;
+          return true;
+        }
 
         const willBeInRiver = isInRiver(newX, newY);
         const willBeOnBridge = isOnBridge(newX, newY);
