@@ -974,30 +974,6 @@ function updateUnits(delta) {
         const newX = unit.x + moveX;
         const newY = unit.y + moveY;
 
-        // Restrict backward movement: allowed only on own territory AND only when chasing an enemy
-        const arena = getArenaDimensions();
-        const myCenterY = unit.y + UNIT_RADIUS;
-        const enemyBehind = nearbyEnemy && (
-          (unit.side === 'friendly' && getUnitCenter(nearbyEnemy).y > myCenterY) ||
-          (unit.side === 'enemy' && getUnitCenter(nearbyEnemy).y < myCenterY)
-        );
-        const goingBackwards =
-          (unit.side === 'friendly' && newY < unit.y) ||
-          (unit.side === 'enemy' && newY > unit.y);
-
-        // Allow backward only:
-        // 1) On own side of the river
-        // 2) AND only if chasing an enemy behind them
-        const onOwnSide =
-          (unit.side === 'friendly' && myCenterY >= arena.riverY) ||
-          (unit.side === 'enemy' && myCenterY <= arena.riverY);
-
-        if (goingBackwards && (!onOwnSide || !enemyBehind)) {
-          // Cancel backward movement
-          unit.path = findPathToTarget(unit);
-          unit.currentPathIndex = 0;
-          return true;
-        }
 
         const willBeInRiver = isInRiver(newX, newY);
         const willBeOnBridge = isOnBridge(newX, newY);
