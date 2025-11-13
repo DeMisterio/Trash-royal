@@ -7,11 +7,11 @@
   "description": "Auto-generated card definition for diddy. Please edit values as needed.",
   "sprite": "Characters/diddy.avif",
   "stats": {
-    "health": 500,
-    "damage": 100,
+    "health": 2000,
+    "damage": 260,
     "attackSpeed": 1.2,
     "range": 1.5,
-    "speed": 60,
+    "speed": 90,
     "targeting": "ground",
     "spawnCount": 1,
     "splashRadius": 0

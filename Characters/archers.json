@@ -7,13 +7,13 @@
   "description": "Twin archers with reliable ranged DPS.",
   "sprite": "Characters/archers.png",
   "stats": {
-    "health": 304,
-    "damage": 107,
+    "health": 504,
+    "damage": 207,
     "attackSpeed": 1.2,
     "range": 5,
     "speed": 60,
     "targeting": "air-ground",
-    "spawnCount": 2,
+    "spawnCount": 4,
     "splashRadius": 0
   }
 }
