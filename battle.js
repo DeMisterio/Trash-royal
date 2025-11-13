@@ -784,6 +784,14 @@ function findPathToTarget(unit) {
   if (!width || !height) return [centerToPoint(unit.targetX, unit.targetY)];
   const path = [];
   const unitCenter = getUnitCenter(unit);
+  // Prevent backwards paths
+  const { riverY: _riverY } = getArenaDimensions();
+  if (unit.side === 'friendly' && unit.targetY < _riverY - 40) {
+    unit.targetY = _riverY - 40;
+  }
+  if (unit.side === 'enemy' && unit.targetY > _riverY + 40) {
+    unit.targetY = _riverY + 40;
+  }
   const laneX = getLaneAnchorX(unit.lane);
   const tolerance = 4;
   const needsToCross =
@@ -871,6 +879,21 @@ function updateUnits(delta) {
       if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
         unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
         if (!unit.targetUnit) {
+          const safeTarget = resolveTargetTower(unit.side, unit.lane);
+          const { riverY } = getArenaDimensions();
+          const targetPos = getTargetPosition(unit.side, safeTarget);
+
+          if (unit.side === 'friendly' && targetPos.y < riverY) {
+            targetPos.y = riverY - 40;
+          }
+          if (unit.side === 'enemy' && targetPos.y > riverY) {
+            targetPos.y = riverY + 40;
+          }
+
+          unit.targetKey = safeTarget;
+          unit.targetX = targetPos.x;
+          unit.targetY = targetPos.y;
+
           unit.mode = 'move';
           unit.path = findPathToTarget(unit);
           unit.currentPathIndex = 0;
@@ -950,6 +973,32 @@ function updateUnits(delta) {
         const moveY = (dy / dist) * currentSpeed * delta;
         const newX = unit.x + moveX;
         const newY = unit.y + moveY;
+
+        // Restrict backward movement: allowed only on own territory AND only when chasing an enemy
+        const arena = getArenaDimensions();
+        const myCenterY = unit.y + UNIT_RADIUS;
+        const enemyBehind = nearbyEnemy && (
+          (unit.side === 'friendly' && getUnitCenter(nearbyEnemy).y > myCenterY) ||
+          (unit.side === 'enemy' && getUnitCenter(nearbyEnemy).y < myCenterY)
+        );
+        const goingBackwards =
+          (unit.side === 'friendly' && newY < unit.y) ||
+          (unit.side === 'enemy' && newY > unit.y);
+
+        // Allow backward only:
+        // 1) On own side of the river
+        // 2) AND only if chasing an enemy behind them
+        const onOwnSide =
+          (unit.side === 'friendly' && myCenterY >= arena.riverY) ||
+          (unit.side === 'enemy' && myCenterY <= arena.riverY);
+
+        if (goingBackwards && (!onOwnSide || !enemyBehind)) {
+          // Cancel backward movement
+          unit.path = findPathToTarget(unit);
+          unit.currentPathIndex = 0;
+          return true;
+        }
+
         const willBeInRiver = isInRiver(newX, newY);
         const willBeOnBridge = isOnBridge(newX, newY);
         const currentlyOnBridge = isOnBridge(unit.x, unit.y);
