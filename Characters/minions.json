@@ -3,11 +3,11 @@
   "name": "Minions",
   "type": "troop",
   "rarity": "common",
-  "elixir": 3,
+  "elixir": 2,
   "description": "Fast flying melee attackers.",
   "sprite": "Characters/minions.png",
   "stats": {
-    "health": 190,
+    "health": 990,
     "damage": 90,
     "attackSpeed": 1,
     "range": 1,

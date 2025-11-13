@@ -13,7 +13,7 @@
     "range": 2,
     "speed": 52,
     "targeting": "ground",
-    "spawnCount": 3,
+    "spawnCount": 1,
     "splashRadius": 0
   }
 }

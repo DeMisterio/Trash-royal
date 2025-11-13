@@ -7,8 +7,8 @@
   "description": "A dependable melee fighter with solid health.",
   "sprite": "Characters/knight.png",
   "stats": {
-    "health": 1600,
-    "damage": 150,
+    "health": 2200,
+    "damage": 400,
     "attackSpeed": 1.1,
     "range": 0.8,
     "speed": 52,

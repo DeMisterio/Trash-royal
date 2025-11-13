@@ -7,11 +7,11 @@
   "description": "Auto-generated stats for Speed. Adjust to balance.",
   "sprite": "Characters/Speed.jpg",
   "stats": {
-    "health": 1134,
+    "health": 1534,
     "damage": 383,
     "attackSpeed": 1.27,
     "range": 1.5,
-    "speed": 42,
+    "speed": 62,
     "targeting": "air-ground",
     "spawnCount": 1,
     "splashRadius": 2.6
