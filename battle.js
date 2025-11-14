@@ -415,7 +415,14 @@ function createBattleState(opponentProfile, deckCards = state.deck.filter((id) =
     phaseIndex: 0,
     phaseTimeLeft: battlePhases[0].duration,
     player: { elixir: 5, regenTimer: 0, cooldowns: {} },
-    enemy: { elixir: 5, regenTimer: 0, nextPlay: 3, emoteTimer: 5 },
+    enemy: {
+      elixir: 5,
+      regenTimer: 0,
+      nextPlay: 3,
+      emoteTimer: 5,
+      lastCombo: null,
+      lastCard: null
+    },
     crowns: { player: 0, enemy: 0 },
     towers,
     towerPositions,
@@ -565,33 +572,64 @@ function updateEnemyAI(delta) {
   state.battle.enemy.nextPlay -= delta;
   if (state.battle.enemy.nextPlay > 0) return;
 
+  // ---------------------------
+  // SMART AI WITH CONTROL
+  // ---------------------------
+
+  function enemyUnderThreat() {
+      const low = ['enemy-left','enemy-right','enemy-king'].some(k => {
+          const t = state.battle.towers[k];
+          return t && t.hp < t.max * 0.30;
+      });
+
+      const manyEnemiesNear = state.battle.units.some(u =>
+          u.side === 'friendly' &&
+          !u.done &&
+          u.hp > 0 &&
+          u.y < state.battle.towerPositions['enemy-king'].y + 120
+      );
+
+      return low || manyEnemiesNear;
+  }
+
+  const underThreat = enemyUnderThreat();
   const elixir = state.battle.enemy.elixir;
   const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
-  const cards = deckIds.map(id=>state.characters[id]).filter(c=>c);
+  const cards = deckIds.map(id => state.characters[id]).filter(c=>c);
 
-  // --- SMART COMBO AI ---
-  const smartCombos = generateSmartCombos(cards)
-    .filter(combo => {
-        const total = combo.reduce((sum,id)=>sum + (state.characters[id]?.elixir || 0), 0);
-        return total <= elixir;
-    });
+  const smartCombos = generateSmartCombos(cards);
 
-  let selectedCombo = null;
-  if (smartCombos.length && Math.random() < 0.55) {
-      selectedCombo = smartCombos[Math.floor(Math.random() * smartCombos.length)];
-  }
+  const wantsCombo = Math.random() < 0.40; // 40% chance
 
-  if (selectedCombo) {
-      for (const id of selectedCombo) {
-          const unitCard = state.characters[id];
-          if (!unitCard) continue;
-          state.battle.enemy.elixir -= unitCard.elixir;
-          spawnEnemyUnit(unitCard);
+  let chosenCombo = null;
+
+  if (!underThreat && wantsCombo && smartCombos.length) {
+
+      const sorted = smartCombos.sort((a,b) => {
+          const costA = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+          const costB = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+          return costB - costA;
+      });
+
+      chosenCombo = sorted[0];
+      const comboCost = chosenCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+
+      if (elixir < comboCost) {
+          state.battle.enemy.nextPlay = randomBetween(1.5, 2.3);
+          return;
       }
-      state.battle.enemy.nextPlay = randomBetween(3, 7);
+
+      for (const id of chosenCombo) {
+          const card = state.characters[id];
+          state.battle.enemy.elixir -= card.elixir;
+          spawnEnemyUnit(card);
+          state.battle.enemy.lastCard = id;
+      }
+
+      state.battle.enemy.lastCombo = chosenCombo;
+      state.battle.enemy.nextPlay = randomBetween(3, 6);
       return;
   }
-  // --- END SMART COMBO AI ---
 
   // Legacy fallback AI:
   function classify(c) {
@@ -659,10 +697,11 @@ function updateEnemyAI(delta) {
   }
 
   // 4. Default random valid troop
-  const troopPool = cards.filter(c=>c.elixir<=elixir);
+  const troopPool = cards.filter(c => c.elixir <= elixir && c.id !== state.battle.enemy.lastCard);
   if (troopPool.length) {
     const pick = troopPool[Math.floor(Math.random()*troopPool.length)];
     state.battle.enemy.elixir -= pick.elixir;
+    state.battle.enemy.lastCard = pick.id;
     spawnEnemyUnit(pick);
   }
 
