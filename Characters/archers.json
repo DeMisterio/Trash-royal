@@ -11,7 +11,7 @@
     "damage": 207,
     "attackSpeed": 1.2,
     "range": 5,
-    "speed": 60,
+    "speed": 84,
     "targeting": "air-ground",
     "spawnCount": 4,
     "splashRadius": 0
