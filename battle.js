@@ -114,6 +114,59 @@ function normalizeCharacter(card) {
   };
 }
 
+function classifyRole(card) {
+    if (card.type === "spell") return "spell";
+    if (card.stats.health >= 2000) return "tank";
+    if (card.stats.range >= 4) return "ranged";
+    if (card.stats.speed >= 80) return "fast";
+    if (card.stats.splashRadius > 0) return "aoe";
+    return "melee";
+}
+
+const ROLE_SYNERGY = {
+    tank:     ["ranged", "aoe", "fast"],
+    melee:    ["ranged", "spell"],
+    fast:     ["aoe", "ranged", "spell"],
+    aoe:      ["tank", "fast"],
+    ranged:   ["tank", "melee"],
+    spell:    ["tank", "fast"]
+};
+
+function generateSmartCombos(cards) {
+    const combos = [];
+
+    for (let i = 0; i < cards.length; i++) {
+        const a = cards[i];
+        const roleA = classifyRole(a);
+
+        for (let j = 0; j < cards.length; j++) {
+            if (i === j) continue;
+            const b = cards[j];
+            const roleB = classifyRole(b);
+
+            if (!ROLE_SYNERGY[roleA]) continue;
+            if (!ROLE_SYNERGY[roleA].includes(roleB)) continue;
+
+            combos.push([a.id, b.id]);
+
+            for (let k = 0; k < cards.length; k++) {
+                if (k === i || k === j) continue;
+                const c = cards[k];
+                const roleC = classifyRole(c);
+
+                if (
+                    ROLE_SYNERGY[roleA].includes(roleC) &&
+                    ROLE_SYNERGY[roleB].includes(roleC)
+                ) {
+                    combos.push([a.id, b.id, c.id]);
+                }
+            }
+        }
+    }
+
+    return combos;
+}
+
 function createCharacterMap(cards) {
   return cards.reduce((acc, card) => {
     acc[card.id] = card;
@@ -516,8 +569,31 @@ function updateEnemyAI(delta) {
   const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
   const cards = deckIds.map(id=>state.characters[id]).filter(c=>c);
 
-  if (!cards.length) return;
+  // --- SMART COMBO AI ---
+  const smartCombos = generateSmartCombos(cards)
+    .filter(combo => {
+        const total = combo.reduce((sum,id)=>sum + (state.characters[id]?.elixir || 0), 0);
+        return total <= elixir;
+    });
 
+  let selectedCombo = null;
+  if (smartCombos.length && Math.random() < 0.55) {
+      selectedCombo = smartCombos[Math.floor(Math.random() * smartCombos.length)];
+  }
+
+  if (selectedCombo) {
+      for (const id of selectedCombo) {
+          const unitCard = state.characters[id];
+          if (!unitCard) continue;
+          state.battle.enemy.elixir -= unitCard.elixir;
+          spawnEnemyUnit(unitCard);
+      }
+      state.battle.enemy.nextPlay = randomBetween(3, 7);
+      return;
+  }
+  // --- END SMART COMBO AI ---
+
+  // Legacy fallback AI:
   function classify(c) {
     if (c.type === 'spell') return 'spell';
     if (c.stats.health >= 1500) return 'tank';
