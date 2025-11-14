@@ -9,6 +9,10 @@ const builtInCharacters = [
   { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 3, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png', stats: { health: 190, damage: 90, attackSpeed: 1, range: 1, speed: 90, targeting: 'air-ground', spawnCount: 3, splashRadius: 0 } },
   { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png', stats: { health: 1696, damage: 264, attackSpeed: 1.5, range: 0.8, speed: 96, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } }
 ];
+function smoothStep(current, target, smoothing) {
+    return current + (target - current) * smoothing;
+}
+
 const DECK_STORAGE_KEY = 'clashRoyaleDeck';
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;
@@ -1072,8 +1076,8 @@ function updateUnits(delta) {
                 const ny = unit.y - (dy / dist) * back * delta;
                 const cl = clampPointToArena(nx, ny);
 
-                unit.x = cl.x;
-                unit.y = cl.y;
+                unit.x = smoothStep(unit.x, cl.x, 0.22)
+                unit.y = smoothStep(unit.y, cl.y, 0.22)
                 return true;
             }
 
@@ -1084,8 +1088,8 @@ function updateUnits(delta) {
 
                 const cl = clampPointToArena(nx, ny);
 
-                unit.x = cl.x;
-                unit.y = cl.y;
+                unit.x = smoothStep(unit.x, cl.x, 0.22)
+                unit.y = smoothStep(unit.y, cl.y, 0.22)
                 return true;
             }
 
@@ -1144,8 +1148,8 @@ function updateUnits(delta) {
                 const ny = unit.y + (dy / dist) * currentSpeed * delta;
 
                 const cl = clampPointToArena(nx, ny);
-                unit.x = cl.x;
-                unit.y = cl.y;
+                unit.x = smoothStep(unit.x, cl.x, 0.22)
+                unit.y = smoothStep(unit.y, cl.y, 0.22)
             }
 
             return true;
@@ -1185,8 +1189,8 @@ function updateUnits(delta) {
                 const ny = unit.y + (dy / d2) * currentSpeed * delta;
 
                 const cl = clampPointToArena(nx, ny);
-                unit.x = cl.x;
-                unit.y = cl.y;
+                unit.x = smoothStep(unit.x, cl.x, 0.22)
+                unit.y = smoothStep(unit.y, cl.y, 0.22)
             } else {
                 if (unit.attackCooldown <= 0) {
                     damageTower(unit.targetKey, unit.attackPower, unit.side);
