@@ -548,14 +548,18 @@ function startBattle() {
   playSoundtrack('battle');
   state.battle.animationFrame = requestAnimationFrame(battleLoop);
 }
-
 function battleLoop(timestamp) {
   if (!state.battle) return;
-  const delta = (timestamp - state.battle.lastTick) / 1000;
-  state.battle.lastTick = timestamp;
-  updateBattle(delta);
+  try {
+    const delta = (timestamp - state.battle.lastTick) / 1000;
+    state.battle.lastTick = timestamp;
+    updateBattle(delta);
+  } catch (err) {
+    console.error("Error in battleLoop:", err);
+  }
   state.battle.animationFrame = requestAnimationFrame(battleLoop);
 }
+
 
 function updateBattle(delta) {
   updateBattleTimer(delta);
