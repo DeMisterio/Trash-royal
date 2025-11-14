@@ -14,6 +14,7 @@
     "giant",
     "hog-rider",
     "knight",
+    "Taylor",
     "minions",
     "musketeer"
   ],
@@ -26,6 +27,10 @@
       "base": "Aoaoa",
       "ext": ".png"
     },
+    {
+      "base":"Taylor",
+      "ext":".jpg"
+    }
     {
       "base": "archers",
       "ext": ".png"
