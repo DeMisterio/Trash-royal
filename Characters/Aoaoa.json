@@ -11,7 +11,7 @@
     "damage": 288,
     "attackSpeed": 0.77,
     "range": 0.8,
-    "speed": 83,
+    "speed": 123,
     "targeting": "buildings",
     "spawnCount": 1,
     "splashRadius": 0
