@@ -261,6 +261,74 @@ function playSoundtrack(name) {
   audio.play().catch(() => {});
 }
 
+function classifyUnit(card) {
+    if (card.type === "spell") return "spell";
+    if (card.stats.health >= 1500) return "tank";
+    if (card.stats.range >= 4) return "ranged";
+    return "melee";
+}
+
+function isUnderAttack() {
+    return state.battle.units.some(u =>
+        u.side === "friendly" &&
+        u.y > state.battle.arenaHeight * 0.58
+    );
+}
+
+function playerIsLosing() {
+    const b = state.battle;
+    const playerScore =
+        b.crowns.player * 10000 +
+        (b.towers["friendly-left"].hp +
+         b.towers["friendly-right"].hp +
+         b.towers["friendly-king"].hp);
+
+    const enemyScore =
+        b.crowns.enemy * 10000 +
+        (b.towers["enemy-left"].hp +
+         b.towers["enemy-right"].hp +
+         b.towers["enemy-king"].hp);
+
+    return playerScore < enemyScore;
+}
+
+function enemyInCriticalDanger() {
+    const b = state.battle;
+    return (
+        b.towers["enemy-left"].hp < b.towerDefaults.princess * 0.2 ||
+        b.towers["enemy-right"].hp < b.towerDefaults.princess * 0.2 ||
+        b.towers["enemy-king"].hp < b.towerDefaults.king * 0.25
+    );
+}
+
+function processEnemyEmotions(enemy) {
+    if (enemy.emoteTimer > 0) return;
+
+    // 1. Ты проигрываешь -> он троллит
+    if (playerIsLosing()) {
+        const toxic = ["👎", "😂", "😎", "👏"];
+        showEmote(toxic[Math.floor(Math.random() * toxic.length)], "enemy");
+        enemy.emoteTimer = randomBetween(3, 6);
+        return;
+    }
+
+    // 2. Он в критической жопе
+    if (enemyInCriticalDanger()) {
+        const panic = ["😡", "😢", "😨", "💀"];
+        showEmote(panic[Math.floor(Math.random() * panic.length)], "enemy");
+        enemy.emoteTimer = randomBetween(2, 4);
+        return;
+    }
+
+    // 3. Нейтральное поведение (редко)
+    if (Math.random() < 0.12) {
+        const casual = ["😀", "😏", "🤨"];
+        showEmote(casual[Math.floor(Math.random() * casual.length)], "enemy");
+    }
+
+    enemy.emoteTimer = randomBetween(4, 7);
+}
+
 function stopAllSound() {
   Object.values(state.sounds).forEach((track) => track && track.pause());
 }
@@ -473,68 +541,104 @@ function showEmote(emote, side) {
 }
 
 function updateEnemyAI(delta) {
-  if (!state.battle) return;
-  const enemy = state.battle.enemy;
+    const enemy = state.battle.enemy;
+    if (!enemy) return;
 
-  // Таймер "когда играть карту"
-  enemy.nextPlay -= delta;
-  enemy.emoteTimer = (enemy.emoteTimer || 0) - delta;
+    // Таймеры
+    enemy.nextPlay -= delta;
+    enemy.emoteTimer = (enemy.emoteTimer || 0) - delta;
 
-  // --- ЭМОЦИИ ОСТАВЛЯЕМ КАК БЫЛО ---
-  if (enemy.emoteTimer <= 0) {
-    const friendlyTowersAlive = ['friendly-left', 'friendly-right', 'friendly-king']
-      .filter(key => isTowerAlive(key)).length;
-    const enemyTowersAlive = ['enemy-left', 'enemy-right', 'enemy-king']
-      .filter(key => isTowerAlive(key)).length;
-    
-    let emote = null;
-    if (friendlyTowersAlive < enemyTowersAlive) {
-      const teasingEmotes = ['😎', '👏', '👎'];
-      emote = teasingEmotes[Math.floor(Math.random() * teasingEmotes.length)];
-    } else if (friendlyTowersAlive > enemyTowersAlive) {
-      const losingEmotes = ['😡', '😢', '👎'];
-      emote = losingEmotes[Math.floor(Math.random() * losingEmotes.length)];
-    } else if (Math.random() < 0.1) {
-      emote = ['😀', '😎', '😡', '👏', '😢', '👎'][Math.floor(Math.random() * 6)];
+    const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
+    let troops = deckIds
+        .map(id => state.characters[id])
+        .filter(c => c && c.type !== "spell");
+
+    if (troops.length === 0) return;
+
+    // ==== Классификация юнитов ====
+    const tanks = troops.filter(c => classifyUnit(c) === "tank")
+        .sort((a, b) => b.stats.health - a.stats.health);
+
+    const ranged = troops.filter(c => classifyUnit(c) === "ranged")
+        .sort((a, b) => b.stats.damage - a.stats.damage);
+
+    const cheap = troops.filter(c => c.elixir <= 3)
+        .sort((a, b) => a.elixir - b.elixir);
+
+    // ==== Комбо-фаза (вторая часть пушки) ====
+    if (enemy.comboQueue) {
+        enemy.comboQueue.delay -= delta;
+        if (enemy.comboQueue.delay <= 0) {
+            spawnEnemyUnit(enemy.comboQueue.card);
+            enemy.elixir -= enemy.comboQueue.card.elixir;
+            enemy.comboQueue = null;
+        }
+
+        // эмоции в комбо-режиме тоже проверяются
+        processEnemyEmotions(enemy);
+        return;
     }
-    
-    if (emote) {
-      showEmote(emote, 'enemy');
-      enemy.emoteTimer = randomBetween(5, 10);
-    } else {
-      enemy.emoteTimer = randomBetween(2, 4);
+
+    // ==== Минимальная карта ====
+    const cheapest = cheap.length ? cheap[0].elixir : 99;
+    if (enemy.elixir < cheapest) {
+        processEnemyEmotions(enemy);
+        return;
     }
-  }
 
-  // Ещё не время ходить
-  if (enemy.nextPlay > 0) return;
+    // ==== 1. Экстренная оборона ====
+    if (isUnderAttack()) {
+        if (enemy.nextPlay <= 0 && cheap.length > 0) {
+            const card = cheap[0];
+            if (enemy.elixir >= card.elixir) {
+                spawnEnemyUnit(card);
+                enemy.elixir -= card.elixir;
+                enemy.nextPlay = randomBetween(0.6, 1.3);
+            }
+        }
+        processEnemyEmotions(enemy);
+        return;
+    }
 
-  // --- НОВЫЙ МОЗГ ---
+    // ==== 2. Комбо-атака (танк + DPS) ====
+    if (tanks.length > 0 && ranged.length > 0) {
+        const tank = tanks[0];
+        const dps = ranged[0];
+        const comboCost = tank.elixir + dps.elixir;
 
-  // 1) Оценить обстановку по линиям
-  const lanes = evaluateLanes();
+        if (enemy.elixir >= comboCost && enemy.nextPlay <= 0) {
 
-  // 2) Выбрать линию и режим (def / push)
-  const decision = pickLane(lanes); // { lane, mode }
+            // Выставляем танка
+            spawnEnemyUnit(tank);
+            enemy.elixir -= tank.elixir;
 
-  // 3) Выбрать лучшую карту под этот режим
-  const card = pickEnemyCard(decision.mode);
+            // Планируем DPS чуть позже
+            enemy.comboQueue = {
+                card: dps,
+                delay: randomBetween(0.8, 1.2)
+            };
 
-  // 4) Если нет карты или элексир не хватает – просто подождать
-  if (!card || enemy.elixir < card.elixir) {
-    enemy.nextPlay = randomBetween(1.5, 3); // чуть подождать
-    return;
-  }
+            enemy.nextPlay = randomBetween(3.5, 5);
 
-  // 5) Сыграть карту
-  enemy.elixir -= card.elixir;
-  enemy.cooldowns = enemy.cooldowns || {};
-  enemy.cooldowns[card.id] = CARD_COOLDOWN;
+            processEnemyEmotions(enemy);
+            return;
+        }
+    }
 
-  spawnEnemyUnitAtLane(card, decision.lane);
+    // ==== 3. Обычный игровой режим ====
+    if (enemy.nextPlay <= 0) {
+        const playable = troops.filter(c => enemy.elixir >= c.elixir);
+        if (playable.length > 0) {
+            const card = playable[Math.floor(Math.random() * playable.length)];
+            spawnEnemyUnit(card);
+            enemy.elixir -= card.elixir;
 
-  // Следующее решение через 3–6 секунд
-  enemy.nextPlay = randomBetween(3, 6);
+            enemy.nextPlay = randomBetween(2, 4);
+        }
+    }
+
+    // ==== эмоции ====
+    processEnemyEmotions(enemy);
 }
 function renderBattleHUD() {
   if (!state.battle) return;
