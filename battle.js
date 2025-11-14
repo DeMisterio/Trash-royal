@@ -13,6 +13,68 @@ function smoothStep(current, target, smoothing) {
     return current + (target - current) * smoothing;
 }
 
+const synergy = {
+    tank:        { ranged:3, splash:3, swarm:2, bruiser:1 },
+    juggernaut:  { ranged:3, swarm:3, splash:2 },
+    bruiser:     { ranged:2, swarm:3, splash:1 },
+    siege:       { ranged:3, swarm:2 },
+    splash:      { swarm:3, tank:2, juggernaut:2 },
+    swarm:       { tank:2, juggernaut:3, splash:2 },
+    ranged:      { tank:3, juggernaut:3, siege:3 }
+};
+
+function generateSmartCombos(deck) {
+    // распределяем карты по ролям
+    const byRole = {};
+    deck.forEach(card => {
+        const r = card.role;
+        if (!byRole[r]) byRole[r] = [];
+        byRole[r].push(card);
+    });
+
+    const combos = [];
+
+    function addCombo(cards) {
+        combos.push(cards.map(c => c.id));
+    }
+
+    // === 1) ДВУХКАРТОЧНЫЕ КОМБО ПО СИНЕРГИИ
+    for (const r1 in byRole) {
+        for (const r2 in byRole) {
+            if (synergy[r1] && synergy[r1][r2] >= 2) {
+                for (const c1 of byRole[r1]) {
+                    for (const c2 of byRole[r2]) {
+                        if (c1.id !== c2.id) {
+                            addCombo([c1, c2]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // === 2) "Большие пуши": tank + splash + ranged
+    if (byRole.tank && byRole.splash && byRole.ranged) {
+        for (const t of byRole.tank)
+            for (const s of byRole.splash)
+                for (const r of byRole.ranged)
+                    addCombo([t, s, r]);
+    }
+
+    // === 3) Juggernaut push: juggernaut + ranged + swarm
+    if (byRole.juggernaut && byRole.ranged && byRole.swarm) {
+        for (const j of byRole.juggernaut)
+            for (const r of byRole.ranged)
+                for (const w of byRole.swarm)
+                    addCombo([j, r, w]);
+    }
+
+    return combos;
+}
+
+
+
+
 const DECK_STORAGE_KEY = 'clashRoyaleDeck';
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;
@@ -204,6 +266,37 @@ function selectBridgeForLane(laneX) {
 function getUnitCenter(unit) {
   return { x: unit.x + UNIT_RADIUS, y: unit.y + UNIT_RADIUS };
 }
+
+
+function detectRole(card) {
+    const hp = card.stats.health;
+    const dmg = card.stats.damage;
+    const range = card.stats.range;
+    const count = card.stats.spawnCount;
+    const targeting = card.stats.targeting;
+
+    // атакует здания → осадный
+    if (targeting === "buildings") return "siege";
+
+    // рой
+    if (count >= 3 && hp < 600) return "swarm";
+
+    // дальний бой
+    if (range >= 3.5) return "ranged";
+
+    // танк
+    if (hp >= 2500 && dmg < 250) return "tank";
+
+    // джаггернаут (много HP, много урона)
+    if (hp >= 3500 && dmg >= 300) return "juggernaut";
+
+    // брузер
+    if (hp >= 900 && dmg >= 200 && range <= 2) return "bruiser";
+
+    // fallback
+    return "melee";
+}
+
 
 function cacheElements() {
   elements.battleModal = document.getElementById('battleModal');
@@ -541,8 +634,56 @@ function showEmote(emote, side) {
 }
 
 function updateEnemyAI(delta) {
+    // Получаем реальные объекты карт из колоды оппонента
+    const deckCards = state.battle.opponent.deckIds.map(id => state.characters[id]);
+    const smartCombos = generateSmartCombos(deckCards);
+    // Сортируем комбинации от простой (2 карты) к большой (3 карты)
+    const sortedCombos = smartCombos.sort((a, b) => a.length - b.length);
+    
+    // Ищем комбо, которое бот может себе позволить (по эликсиру)
+    function findUsableCombo() {
+        for (const combo of sortedCombos) {
+            let totalCost = 0;
+    
+            for (const id of combo) {
+                const card = state.characters[id];
+                totalCost += card.elixir;
+            }
+    
+            // если хватает эликсира – берём
+            if (state.battle.opponent.elixir >= totalCost) {
+                return combo;
+            }
+        }
+        return null;
+    }
+    
     const enemy = state.battle.enemy;
     if (!enemy) return;
+    
+    function underThreat() {
+    return state.battle.units.some(u =>
+        u.side === "player" &&
+        u.x > 150 && u.x < 350  // зона возле его башни, при необходимости увеличи
+    );
+    }
+    let chosenCombo = null;
+
+    if (!underThreat()) {
+        chosenCombo = findUsableCombo();
+    }
+    if (chosenCombo) {
+    for (let i = 0; i < chosenCombo.length; i++) {
+        const id = chosenCombo[i];
+        spawnOpponentUnit(id, "center"); // или lane
+    }
+
+    // Потратить эликсир
+    let cost = chosenCombo.reduce((sum, id) => sum + state.characters[id].elixir, 0);
+    state.battle.opponent.elixir -= cost;
+
+    return; // важно! Чтобы бот не делал обычную логику в этот тик
+    }
 
     // Таймеры
     enemy.nextPlay -= delta;
