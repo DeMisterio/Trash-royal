@@ -1,11 +1,11 @@
 {
-  "id": "Sins",
-  "name": "Sins",
+  "id": "Taylor",
+  "name": "Taylor",
   "type": "troop",
   "rarity": "legendary",
   "elixir": 4,
   "description": "Auto-generated stats for Sins. Adjust to balance.",
-  "sprite": "Characters/Sins.jpeg",
+  "sprite": "Characters/Taylor.jpg",
   "stats": {
     "health": 3936,
     "damage": 354,
