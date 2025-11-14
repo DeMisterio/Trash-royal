@@ -1,18 +1,37 @@
 const builtInCharacters = [
-  { id: 'knight', name: 'Knight', type: 'troop', rarity: 'common', elixir: 3, description: 'A dependable melee fighter with solid health.', emoji: '🛡️', sprite: 'Characters/knight.png', stats: { health: 2200, damage: 400, attackSpeed: 1.1, range: 0.8, speed: 52, targeting: 'ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'archers', name: 'Archers', type: 'troop', rarity: 'common', elixir: 3, description: 'Twin archers with reliable ranged DPS.', emoji: '🏹', sprite: 'Characters/archers.png', stats: { health: 504, damage: 207, attackSpeed: 1.2, range: 5, speed: 60, targeting: 'air-ground', spawnCount: 4, splashRadius: 0 } },
-  { id: 'baby-dragon', name: 'Baby Dragon', type: 'troop', rarity: 'epic', elixir: 4, description: 'Flying splash attacker, hard to take down.', emoji: '🐲', sprite: 'Characters/baby-dragon.png', stats: { health: 1200, damage: 150, attackSpeed: 1.6, range: 3.5, speed: 62, targeting: 'air-ground', spawnCount: 1, splashRadius: 2 } },
-  { id: 'fireball', name: 'Fireball', type: 'spell', rarity: 'rare', elixir: 4, description: 'Medium area damage spell.', emoji: '🔥', sprite: 'Characters/fireball.png', stats: { damage: 1572, radius: 30.5, towerDamageModifier: 0.35, travelTime: 0.7 } },
-  { id: 'giant', name: 'Giant', type: 'troop', rarity: 'rare', elixir: 5, description: 'Slow but mighty siege unit that targets buildings.', emoji: '🗿', sprite: 'Characters/giant.png', stats: { health: 3344, damage: 211, attackSpeed: 1.5, range: 0.8, speed: 40, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } },
-  { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 2, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png', stats: { health: 990, damage: 90, attackSpeed: 1, range: 1, speed: 90, targeting: 'air-ground', spawnCount: 3, splashRadius: 0 } },
-  { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png', stats: { health: 1696, damage: 464, attackSpeed: 1.5, range: 0.8, speed: 96, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } },
-  { id: 'musketeer', name: 'Musketeer', type: 'troop', rarity: 'rare', elixir: 4, description: 'Single target sharpshooter.', emoji: '🎯', sprite: 'Characters/musketeer.png', stats: { health: 1398, damage: 360, attackSpeed: 1.1, range: 6, speed: 65, targeting: 'air-ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'Speed', name: 'Speed', type: 'troop', rarity: 'common', elixir: 4, description: 'Community-made sprinter that hits like a truck.', emoji: '⚡', sprite: 'Characters/Speed.jpg', stats: { health: 1534, damage: 683, attackSpeed: 1.27, range: 1.5, speed: 90, targeting: 'air-ground', spawnCount: 1, splashRadius: 2.6 } },
-  { id: 'Epstein', name: 'Epstein', type: 'troop', rarity: 'rare', elixir: 4, description: 'Auto-generated stats for Epstein. Adjust to balance.', emoji: '🎩', sprite: 'Characters/Epstein.png', stats: { health: 1609, damage: 314, attackSpeed: 0.83, range: 2.2, speed: 59, targeting: 'air-ground', spawnCount: 2, splashRadius: 0 } },
-  { id: 'Sins', name: 'Sins', type: 'troop', rarity: 'legendary', elixir: 4, description: 'Auto-generated stats for Sins. Adjust to balance.', emoji: '😈', sprite: 'Characters/Sins.jpeg', stats: { health: 3936, damage: 354, attackSpeed: 1.83, range: 2.2, speed: 36, targeting: 'air-ground', spawnCount: 1, splashRadius: 0 } },
-  { id: '67', name: '67', type: 'troop', rarity: 'legendary', elixir: 3, description: 'Auto-generated stats for 67. Adjust to balance.', emoji: '🎲', sprite: 'Characters/67.png', stats: { health: 922, damage: 549, attackSpeed: 1.77, range: 2, speed: 76, targeting: 'ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'diddy', name: 'Diddy', type: 'troop', rarity: 'common', elixir: 3, description: 'Creator cameo with surprisingly beefy stats.', emoji: '🕶️', sprite: 'Characters/diddy.avif', stats: { health: 2000, damage: 260, attackSpeed: 1.2, range: 1.5, speed: 90, targeting: 'ground', spawnCount: 1, splashRadius: 0 } }
+  { id: 'knight', name: 'Knight', type: 'troop', rarity: 'common', elixir: 3, description: 'A dependable melee fighter with solid health.', emoji: '🛡️'},
+  { id: 'archers', name: 'Archers', type: 'troop', rarity: 'common', elixir: 3, description: 'Twin archers with reliable ranged DPS.', emoji: '🏹', sprite: 'Characters/archers.png'},
+  { id: 'baby-dragon', name: 'Baby Dragon', type: 'troop', rarity: 'epic', elixir: 4, description: 'Flying splash attacker, hard to take down.', emoji: '🐲', sprite: 'Characters/baby-dragon.png'},
+  { id: 'fireball', name: 'Fireball', type: 'spell', rarity: 'rare', elixir: 4, description: 'Medium area damage spell.', emoji: '🔥', sprite: 'Characters/fireball.png',},
+  { id: 'giant', name: 'Giant', type: 'troop', rarity: 'rare', elixir: 5, description: 'Slow but mighty siege unit that targets buildings.', emoji: '🗿', sprite: 'Characters/giant.png'},
+  { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 2, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png'},
+  { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png'},
+  { id: 'musketeer', name: 'Musketeer', type: 'troop', rarity: 'rare', elixir: 4, description: 'Single target sharpshooter.', emoji: '🎯', sprite: 'Characters/musketeer.png'},
+  { id: 'Speed', name: 'Speed', type: 'troop', rarity: 'common', elixir: 4, description: 'Community-made sprinter that hits like a truck.', emoji: '⚡', sprite: 'Characters/Speed.jpg'},
+  { id: 'Epstein', name: 'Epstein', type: 'troop', rarity: 'rare', elixir: 4, description: 'Auto-generated stats for Epstein. Adjust to balance.', emoji: '🎩', sprite: 'Characters/Epstein.png'},
+  { id: 'Sins', name: 'Sins', type: 'troop', rarity: 'legendary', elixir: 4, description: 'Auto-generated stats for Sins. Adjust to balance.', emoji: '😈', sprite: 'Characters/Sins.jpeg'},
+  { id: '67', name: '67', type: 'troop', rarity: 'legendary', elixir: 3, description: 'Auto-generated stats for 67. Adjust to balance.', emoji: '🎲', sprite: 'Characters/67.png'},
+  { id: 'diddy', name: 'Diddy', type: 'troop', rarity: 'common', elixir: 3, description: 'Creator cameo with surprisingly beefy stats.', emoji: '🕶️', sprite: 'Characters/diddy.avif'}
 ];
+
+async function loadCharacterStats(character) {
+    const path = `Characters/${character.id}.json`;
+
+    try {
+        const response = await fetch(path);
+        if (!response.ok) {
+            console.warn(`Stats JSON not found for ${character.id}`);
+            return null; // JSON нет — оставляем дефолты
+        }
+
+        const json = await response.json();
+        return json.stats || null;
+
+    } catch (err) {
+        console.error("Error loading stats for", character.id, err);
+        return null;
+    }
+}
 
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;

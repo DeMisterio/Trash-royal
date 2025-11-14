@@ -7,7 +7,7 @@
   "description": "Auto-generated stats for Aoaoa. Adjust to balance.",
   "sprite": "Characters/Aoaoa.png",
   "stats": {
-    "health": 318,
+    "health": 1118,
     "damage": 192,
     "attackSpeed": 1.44,
     "range": 2,

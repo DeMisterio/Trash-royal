@@ -1,18 +1,38 @@
 const builtInCharacters = [
-  { id: 'knight', name: 'Knight', type: 'troop', rarity: 'common', elixir: 3, description: 'A dependable melee fighter with solid health.', emoji: '🛡️', sprite: 'Characters/knight.png', stats: { health: 2200, damage: 400, attackSpeed: 1.1, range: 0.8, speed: 52, targeting: 'ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'archers', name: 'Archers', type: 'troop', rarity: 'common', elixir: 3, description: 'Twin archers with reliable ranged DPS.', emoji: '🏹', sprite: 'Characters/archers.png', stats: { health: 504, damage: 207, attackSpeed: 1.2, range: 5, speed: 60, targeting: 'air-ground', spawnCount: 4, splashRadius: 0 } },
-  { id: 'baby-dragon', name: 'Baby Dragon', type: 'troop', rarity: 'epic', elixir: 4, description: 'Flying splash attacker, hard to take down.', emoji: '🐲', sprite: 'Characters/baby-dragon.png', stats: { health: 1200, damage: 150, attackSpeed: 1.6, range: 3.5, speed: 62, targeting: 'air-ground', spawnCount: 1, splashRadius: 2 } },
-  { id: 'fireball', name: 'Fireball', type: 'spell', rarity: 'rare', elixir: 4, description: 'Medium area damage spell.', emoji: '🔥', sprite: 'Characters/fireball.png', stats: { damage: 1572, radius: 30.5, towerDamageModifier: 0.35, travelTime: 0.7 } },
-  { id: 'giant', name: 'Giant', type: 'troop', rarity: 'rare', elixir: 5, description: 'Slow but mighty siege unit that targets buildings.', emoji: '🗿', sprite: 'Characters/giant.png', stats: { health: 3344, damage: 211, attackSpeed: 1.5, range: 0.8, speed: 40, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } },
-  { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 2, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png', stats: { health: 990, damage: 90, attackSpeed: 1, range: 1, speed: 90, targeting: 'air-ground', spawnCount: 3, splashRadius: 0 } },
-  { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png', stats: { health: 1696, damage: 464, attackSpeed: 1.5, range: 0.8, speed: 96, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } },
-  { id: 'musketeer', name: 'Musketeer', type: 'troop', rarity: 'rare', elixir: 4, description: 'Single target sharpshooter.', emoji: '🎯', sprite: 'Characters/musketeer.png', stats: { health: 1398, damage: 360, attackSpeed: 1.1, range: 6, speed: 65, targeting: 'air-ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'Speed', name: 'Speed', type: 'troop', rarity: 'common', elixir: 4, description: 'Community-made sprinter that hits like a truck.', emoji: '⚡', sprite: 'Characters/Speed.jpg', stats: { health: 1534, damage: 683, attackSpeed: 1.27, range: 1.5, speed: 90, targeting: 'air-ground', spawnCount: 1, splashRadius: 2.6 } },
-  { id: 'Epstein', name: 'Epstein', type: 'troop', rarity: 'rare', elixir: 4, description: 'Auto-generated stats for Epstein. Adjust to balance.', emoji: '🎩', sprite: 'Characters/Epstein.png', stats: { health: 1609, damage: 314, attackSpeed: 0.83, range: 2.2, speed: 59, targeting: 'air-ground', spawnCount: 2, splashRadius: 0 } },
-  { id: 'Sins', name: 'Sins', type: 'troop', rarity: 'legendary', elixir: 4, description: 'Auto-generated stats for Sins. Adjust to balance.', emoji: '😈', sprite: 'Characters/Sins.jpeg', stats: { health: 3936, damage: 354, attackSpeed: 1.83, range: 2.2, speed: 36, targeting: 'air-ground', spawnCount: 1, splashRadius: 0 } },
-  { id: '67', name: '67', type: 'troop', rarity: 'legendary', elixir: 3, description: 'Auto-generated stats for 67. Adjust to balance.', emoji: '🎲', sprite: 'Characters/67.png', stats: { health: 922, damage: 549, attackSpeed: 1.77, range: 2, speed: 76, targeting: 'ground', spawnCount: 1, splashRadius: 0 } },
-  { id: 'diddy', name: 'Diddy', type: 'troop', rarity: 'common', elixir: 3, description: 'Creator cameo with surprisingly beefy stats.', emoji: '🕶️', sprite: 'Characters/diddy.avif', stats: { health: 2000, damage: 260, attackSpeed: 1.2, range: 1.5, speed: 90, targeting: 'ground', spawnCount: 1, splashRadius: 0 } }
+  { id: 'knight', name: 'Knight', type: 'troop', rarity: 'common', elixir: 3, description: 'A dependable melee fighter with solid health.', emoji: '🛡️'},
+  { id: 'archers', name: 'Archers', type: 'troop', rarity: 'common', elixir: 3, description: 'Twin archers with reliable ranged DPS.', emoji: '🏹', sprite: 'Characters/archers.png'},
+  { id: 'baby-dragon', name: 'Baby Dragon', type: 'troop', rarity: 'epic', elixir: 4, description: 'Flying splash attacker, hard to take down.', emoji: '🐲', sprite: 'Characters/baby-dragon.png'},
+  { id: 'fireball', name: 'Fireball', type: 'spell', rarity: 'rare', elixir: 4, description: 'Medium area damage spell.', emoji: '🔥', sprite: 'Characters/fireball.png',},
+  { id: 'giant', name: 'Giant', type: 'troop', rarity: 'rare', elixir: 5, description: 'Slow but mighty siege unit that targets buildings.', emoji: '🗿', sprite: 'Characters/giant.png'},
+  { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 2, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png'},
+  { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png'},
+  { id: 'musketeer', name: 'Musketeer', type: 'troop', rarity: 'rare', elixir: 4, description: 'Single target sharpshooter.', emoji: '🎯', sprite: 'Characters/musketeer.png'},
+  { id: 'Speed', name: 'Speed', type: 'troop', rarity: 'common', elixir: 4, description: 'Community-made sprinter that hits like a truck.', emoji: '⚡', sprite: 'Characters/Speed.jpg'},
+  { id: 'Epstein', name: 'Epstein', type: 'troop', rarity: 'rare', elixir: 4, description: 'Auto-generated stats for Epstein. Adjust to balance.', emoji: '🎩', sprite: 'Characters/Epstein.png'},
+  { id: 'Sins', name: 'Sins', type: 'troop', rarity: 'legendary', elixir: 4, description: 'Auto-generated stats for Sins. Adjust to balance.', emoji: '😈', sprite: 'Characters/Sins.jpeg'},
+  { id: '67', name: '67', type: 'troop', rarity: 'legendary', elixir: 3, description: 'Auto-generated stats for 67. Adjust to balance.', emoji: '🎲', sprite: 'Characters/67.png'},
+  { id: 'diddy', name: 'Diddy', type: 'troop', rarity: 'common', elixir: 3, description: 'Creator cameo with surprisingly beefy stats.', emoji: '🕶️', sprite: 'Characters/diddy.avif'}
 ];
+
+async function loadCharacterStats(character) {
+    const path = `Characters/${character.id}.json`;
+
+    try {
+        const response = await fetch(path);
+        if (!response.ok) {
+            console.warn(`Stats JSON not found for ${character.id}`);
+            return null; // JSON нет — оставляем дефолты
+        }
+
+        const json = await response.json();
+        return json.stats || null;
+
+    } catch (err) {
+        console.error("Error loading stats for", character.id, err);
+        return null;
+    }
+}
+
 const DECK_STORAGE_KEY = 'clashRoyaleDeck';
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;
@@ -474,50 +494,103 @@ function showEmote(emote, side) {
 
 function updateEnemyAI(delta) {
   if (!state.battle) return;
-  state.battle.enemy.nextPlay -= delta;
+
+  // Emotes keep working normally
   state.battle.enemy.emoteTimer = (state.battle.enemy.emoteTimer || 0) - delta;
-  
-  // NPC emotions
   if (state.battle.enemy.emoteTimer <= 0) {
-    const friendlyTowersAlive = ['friendly-left', 'friendly-right', 'friendly-king']
-      .filter(key => isTowerAlive(key)).length;
-    const enemyTowersAlive = ['enemy-left', 'enemy-right', 'enemy-king']
-      .filter(key => isTowerAlive(key)).length;
-    
-    let emote = null;
-    if (friendlyTowersAlive < enemyTowersAlive) {
-      // NPC is winning - teasing
-      const teasingEmotes = ['😎', '👏', '👎'];
-      emote = teasingEmotes[Math.floor(Math.random() * teasingEmotes.length)];
-    } else if (friendlyTowersAlive > enemyTowersAlive) {
-      // NPC is losing - angry or sad
-      const losingEmotes = ['😡', '😢', '👎'];
-      emote = losingEmotes[Math.floor(Math.random() * losingEmotes.length)];
-    } else if (Math.random() < 0.1) {
-      // Random emote sometimes
-      emote = ['😀', '😎', '😡', '👏', '😢', '👎'][Math.floor(Math.random() * 6)];
-    }
-    
-    if (emote) {
-      showEmote(emote, 'enemy');
-      state.battle.enemy.emoteTimer = randomBetween(5, 10);
-    } else {
-      state.battle.enemy.emoteTimer = randomBetween(2, 4);
+    const friendlyAlive = ['friendly-left','friendly-right','friendly-king'].filter(k=>isTowerAlive(k)).length;
+    const enemyAlive = ['enemy-left','enemy-right','enemy-king'].filter(k=>isTowerAlive(k)).length;
+    let em = null;
+    if (enemyAlive > friendlyAlive) em = ['😎','👏'][Math.floor(Math.random()*2)];
+    if (enemyAlive < friendlyAlive) em = ['😡','😢'][Math.floor(Math.random()*2)];
+    if (!em && Math.random() < 0.1) em = ['😀','😎','😡','👏','😢','👎'][Math.floor(Math.random()*6)];
+    if (em) showEmote(em,'enemy');
+    state.battle.enemy.emoteTimer = randomBetween(2,5);
+  }
+
+  // COMBO INTELLIGENCE
+  state.battle.enemy.nextPlay -= delta;
+  if (state.battle.enemy.nextPlay > 0) return;
+
+  const elixir = state.battle.enemy.elixir;
+  const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
+  const cards = deckIds.map(id=>state.characters[id]).filter(c=>c);
+
+  if (!cards.length) return;
+
+  function classify(c) {
+    if (c.type === 'spell') return 'spell';
+    if (c.stats.health >= 1500) return 'tank';
+    if (c.stats.range >= 4) return 'ranged';
+    return 'melee';
+  }
+
+  function pickTank(pool) {
+    return pool.find(c=>classify(c)==='tank' && c.elixir<=elixir);
+  }
+  function pickSupport(pool){
+    return pool.find(c=>classify(c)==='ranged' && c.elixir<=elixir);
+  }
+  function cheapSpell(pool){
+    return pool.find(c=>c.type==='spell' && c.elixir<=elixir);
+  }
+
+  const tankPool = cards.filter(c=>classify(c)==='tank');
+  const rangedPool = cards.filter(c=>classify(c)==='ranged');
+  const spellPool = cards.filter(c=>c.type==='spell');
+
+  const isWinning = state.battle.crowns.enemy > state.battle.crowns.player;
+  const playerLow = ['friendly-left','friendly-right','friendly-king'].some(k=>{
+    const t = state.battle.towers[k];
+    return t && t.hp < t.max*0.25;
+  });
+
+  // COMBO RULES:
+
+  // 1. SPELL punish if player is low HP tower
+  if (playerLow) {
+    const finisher = cheapSpell(spellPool);
+    if (finisher) {
+      state.battle.enemy.elixir -= finisher.elixir;
+      spawnEnemyUnit(finisher);
+      state.battle.enemy.nextPlay = randomBetween(2,4);
+      return;
     }
   }
-  
-  if (state.battle.enemy.nextPlay <= 0) {
-    const deckIds = (state.battle.opponent?.deckIds || getAvailableCardIds());
-    let troopPool = deckIds.map((id) => state.characters[id]).filter((card) => card && card.type !== 'spell');
-    if (!troopPool.length) troopPool = getTroopCards();
-    troopPool = troopPool.filter((card) => card.elixir <= state.battle.enemy.elixir);
-    if (troopPool.length) {
-      const card = troopPool[Math.floor(Math.random() * troopPool.length)];
-      state.battle.enemy.elixir -= card.elixir;
-      spawnEnemyUnit(card);
-    }
-    state.battle.enemy.nextPlay = randomBetween(3, 6);
+
+  // 2. TANK + support push
+  let tank = pickTank(tankPool);
+  let support = pickSupport(rangedPool);
+
+  if (tank && support && tank.elixir + support.elixir <= elixir) {
+    state.battle.enemy.elixir -= tank.elixir;
+    spawnEnemyUnit(tank);
+    state.battle.enemy.elixir -= support.elixir;
+    spawnEnemyUnit(support);
+    state.battle.enemy.nextPlay = randomBetween(4,7);
+    return;
   }
+
+  // 3. If losing - spam cheapest troops
+  if (!isWinning) {
+    const cheap = cards.filter(c=>c.elixir<=elixir).sort((a,b)=>a.elixir-b.elixir)[0];
+    if (cheap) {
+      state.battle.enemy.elixir -= cheap.elixir;
+      spawnEnemyUnit(cheap);
+      state.battle.enemy.nextPlay = randomBetween(2,4);
+      return;
+    }
+  }
+
+  // 4. Default random valid troop
+  const troopPool = cards.filter(c=>c.elixir<=elixir);
+  if (troopPool.length) {
+    const pick = troopPool[Math.floor(Math.random()*troopPool.length)];
+    state.battle.enemy.elixir -= pick.elixir;
+    spawnEnemyUnit(pick);
+  }
+
+  state.battle.enemy.nextPlay = randomBetween(3,6);
 }
 
 function renderBattleHUD() {
