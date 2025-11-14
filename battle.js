@@ -1026,6 +1026,7 @@ function updateUnits(delta) {
     const speedMultiplier = isOvertime ? 1.2 : 1.0;
 
     state.battle.units = state.battle.units.filter((unit) => {
+
         if (unit.done || unit.hp <= 0) {
             unit.element.remove();
             return false;
@@ -1035,19 +1036,24 @@ function updateUnits(delta) {
 
         const currentSpeed = unit.speed * speedMultiplier;
 
-        // Найти ближайшего врага, чтобы юнит мог переключить цель если нужно
+        // Цель рядом? Переключаемся
         const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5);
         if (nearbyEnemy && (unit.mode !== "combat" || unit.targetUnit !== nearbyEnemy)) {
             unit.mode = "combat";
             unit.targetUnit = nearbyEnemy;
         }
 
-        // ======== БОЕВОЙ РЕЖИМ ========
+        // =========================
+        // ======== COMBAT =========
+        // =========================
         if (unit.mode === "combat") {
+
+            // Цель умерла → ищем новую
             if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
                 unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
 
                 if (!unit.targetUnit) {
+                    // Переход на башню
                     const safeTarget = resolveTargetTower(unit.side, unit.lane);
                     const pos = getTargetPosition(unit.side, safeTarget);
 
@@ -1058,42 +1064,53 @@ function updateUnits(delta) {
                     unit.mode = "move";
                     unit.path = findPathToTarget(unit);
                     unit.currentPathIndex = 0;
-
                     return true;
                 }
             }
 
             const myCenter = getUnitCenter(unit);
             const enemyCenter = getUnitCenter(unit.targetUnit);
+
             const dx = enemyCenter.x - myCenter.x;
             const dy = enemyCenter.y - myCenter.y;
             const dist = Math.hypot(dx, dy);
 
-            // === 1) НОВОЕ: шаг назад ТОЛЬКО если враг СЗАДИ ===
+            // 1) Шаг назад если враг сзади
             if (enemyBehindClose(unit)) {
                 const back = currentSpeed * 0.6;
+
                 const nx = unit.x - (dx / dist) * back * delta;
                 const ny = unit.y - (dy / dist) * back * delta;
+
                 const cl = clampPointToArena(nx, ny);
 
-                unit.x = smoothStep(unit.x, cl.x, 0.22)
-                unit.y = smoothStep(unit.y, cl.y, 0.22)
+                unit.x = smoothStep(unit.x, cl.x, 0.22);
+                unit.y = smoothStep(unit.y, cl.y, 0.22);
+
+                unit.element.style.left = `${unit.x}px`;
+                unit.element.style.top = `${unit.y}px`;
+
                 return true;
             }
 
-            // === 2) ДВИЖЕНИЕ ВПЕРЁД ПО ДИАГОНАЛИ ===
+            // 2) Продвижение вперёд по диагонали
             if (dist > unit.attackRange) {
+
                 const nx = unit.x + (dx / dist) * currentSpeed * delta;
                 const ny = unit.y + (dy / dist) * currentSpeed * delta;
 
                 const cl = clampPointToArena(nx, ny);
 
-                unit.x = smoothStep(unit.x, cl.x, 0.22)
-                unit.y = smoothStep(unit.y, cl.y, 0.22)
+                unit.x = smoothStep(unit.x, cl.x, 0.22);
+                unit.y = smoothStep(unit.y, cl.y, 0.22);
+
+                unit.element.style.left = `${unit.x}px`;
+                unit.element.style.top = `${unit.y}px`;
+
                 return true;
             }
 
-            // === 3) АТАКА ===
+            // 3) Атака
             if (unit.attackCooldown <= 0) {
                 if (unit.isRanged) {
                     spawnProjectile(
@@ -1102,26 +1119,26 @@ function updateUnits(delta) {
                         () => {
                             if (unit.targetUnit && !unit.targetUnit.done) {
                                 unit.targetUnit.hp -= unit.attackPower;
-                                if (unit.targetUnit.hp <= 0) {
-                                    unit.targetUnit.done = true;
-                                }
+                                if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
                             }
                         }
                     );
                 } else {
                     unit.targetUnit.hp -= unit.attackPower;
-                    if (unit.targetUnit.hp <= 0) {
-                        unit.targetUnit.done = true;
-                    }
+                    if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
                 }
+
                 unit.attackCooldown = unit.attackSpeed;
             }
 
             return true;
         }
 
-        // ======== РЕЖИМ ПЕРЕМЕЩЕНИЯ ========
+        // =========================
+        // ========= MOVE ==========
+        // =========================
         if (unit.mode === "move") {
+
             if (!unit.path) {
                 unit.path = findPathToTarget(unit);
                 unit.currentPathIndex = 0;
@@ -1133,6 +1150,7 @@ function updateUnits(delta) {
             }
 
             const target = unit.path[unit.currentPathIndex];
+
             const dx = target.x - unit.x;
             const dy = target.y - unit.y;
             const dist = Math.hypot(dx, dy);
@@ -1148,16 +1166,24 @@ function updateUnits(delta) {
                 const ny = unit.y + (dy / dist) * currentSpeed * delta;
 
                 const cl = clampPointToArena(nx, ny);
-                unit.x = smoothStep(unit.x, cl.x, 0.22)
-                unit.y = smoothStep(unit.y, cl.y, 0.22)
+
+                unit.x = smoothStep(unit.x, cl.x, 0.22);
+                unit.y = smoothStep(unit.y, cl.y, 0.22);
+
+                unit.element.style.left = `${unit.x}px`;
+                unit.element.style.top = `${unit.y}px`;
             }
 
             return true;
         }
 
-        // ======== РЕЖИМ АТАКИ БАШНИ ========
+        // =========================
+        // ======= ATTACK ==========
+        // =========================
         if (unit.mode === "attack") {
+
             if (!isTowerAlive(unit.targetKey)) {
+
                 const newT = resolveTargetTower(unit.side, unit.lane);
                 if (!isTowerAlive(newT)) {
                     unit.done = true;
@@ -1166,6 +1192,7 @@ function updateUnits(delta) {
                 }
 
                 const pos = getTargetPosition(unit.side, newT);
+
                 unit.targetKey = newT;
                 unit.targetX = pos.x;
                 unit.targetY = pos.y;
@@ -1173,24 +1200,30 @@ function updateUnits(delta) {
                 unit.mode = "move";
                 unit.path = findPathToTarget(unit);
                 unit.currentPathIndex = 0;
+
                 return true;
             }
 
             const towerPos = state.battle.towerPositions[unit.targetKey];
             const uC = getUnitCenter(unit);
-            const dist = Math.hypot(uC.x - towerPos.x, uC.y - towerPos.y);
+
+            const dx = towerPos.x - uC.x;
+            const dy = towerPos.y - uC.y;
+            const dist = Math.hypot(dx, dy);
 
             if (dist > unit.attackRange) {
-                const dx = towerPos.x - uC.x;
-                const dy = towerPos.y - uC.y;
-                const d2 = Math.hypot(dx, dy);
 
-                const nx = unit.x + (dx / d2) * currentSpeed * delta;
-                const ny = unit.y + (dy / d2) * currentSpeed * delta;
+                const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                const ny = unit.y + (dy / dist) * currentSpeed * delta;
 
                 const cl = clampPointToArena(nx, ny);
-                unit.x = smoothStep(unit.x, cl.x, 0.22)
-                unit.y = smoothStep(unit.y, cl.y, 0.22)
+
+                unit.x = smoothStep(unit.x, cl.x, 0.22);
+                unit.y = smoothStep(unit.y, cl.y, 0.22);
+
+                unit.element.style.left = `${unit.x}px`;
+                unit.element.style.top = `${unit.y}px`;
+
             } else {
                 if (unit.attackCooldown <= 0) {
                     damageTower(unit.targetKey, unit.attackPower, unit.side);
@@ -1200,10 +1233,6 @@ function updateUnits(delta) {
 
             return true;
         }
-
-        // Обновление позиции DOM
-        unit.element.style.left = `${unit.x}px`;
-        unit.element.style.top = `${unit.y}px`;
 
         return true;
     });
