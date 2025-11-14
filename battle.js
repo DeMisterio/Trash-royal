@@ -395,6 +395,8 @@ function playerIsLosing() {
 
 
 function enemyInCriticalDanger() {
+    if (!state.battle || !state.battle.towers) return false;
+
     const t = state.battle.towers;
 
     const left  = t["enemy-left"];
@@ -404,13 +406,14 @@ function enemyInCriticalDanger() {
     if (!left || !right || !king) return false;
 
     return (
-        left.hp  < left.max  * 0.25 ||
+        left.hp  < left.max * 0.25 ||
         right.hp < right.max * 0.25 ||
-        king.hp  < king.max  * 0.30
+        king.hp  < king.max * 0.30
     );
 }
+
 function processEnemyEmotions(enemy) {
-    if (!enemy) return;
+    if (!enemy || !state.battle || !state.battle.towers) return;
 
     enemy.emoteTimer -= 1;
     if (enemy.emoteTimer > 0) return;
