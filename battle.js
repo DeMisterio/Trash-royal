@@ -998,224 +998,212 @@ function spawnEnemyUnitAtLane(card, lane) {
   const y = UNIT_RADIUS + 10;
   spawnUnit(card, 'enemy', { x, y, lane: safeLane });
 }
-function updateUnits(delta) {
-  // Apply overtime speed boost
-  const isOvertime = state.battle && state.battle.globalTime <= 30;
-  const speedMultiplier = isOvertime ? 1.2 : 1.0;
-  
-  state.battle.units = state.battle.units.filter((unit) => {
-    if (unit.done || unit.hp <= 0) {
-      unit.element.remove();
-      return false;
-    }
-    
-    if (unit.attackCooldown > 0) unit.attackCooldown -= delta;
-    
-    // Apply speed multiplier
-    const currentSpeed = unit.speed * speedMultiplier;
-    
-    // Check for nearby enemies first - prioritize enemies in our territory
-    const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5); // Slightly larger detection range
-    
-    if (nearbyEnemy && (unit.mode !== 'combat' || unit.targetUnit !== nearbyEnemy)) {
-      unit.mode = 'combat';
-      unit.targetUnit = nearbyEnemy;
-    }
-    
-    if (unit.mode === 'combat') {
-      // Check if enemy is still in range
-      if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
-        unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
-        if (!unit.targetUnit) {
-          const safeTarget = resolveTargetTower(unit.side, unit.lane);
-          const { riverY } = getArenaDimensions();
-          const targetPos = getTargetPosition(unit.side, safeTarget);
 
-          if (unit.side === 'friendly' && targetPos.y < riverY) {
-            targetPos.y = riverY - 40;
-          }
-          if (unit.side === 'enemy' && targetPos.y > riverY) {
-            targetPos.y = riverY + 40;
-          }
+function enemyBehindClose(unit, enemy) {
+  if (!enemy) return false;
 
-          unit.targetKey = safeTarget;
-          unit.targetX = targetPos.x;
-          unit.targetY = targetPos.y;
+  const my = getUnitCenter(unit);
+  const en = getUnitCenter(enemy);
 
-          unit.mode = 'move';
-          unit.path = findPathToTarget(unit);
-          unit.currentPathIndex = 0;
-          return true;
-        }
-      }
-      
-      const myCenter = getUnitCenter(unit);
-      const enemyCenter = getUnitCenter(unit.targetUnit);
-      const enemyDist = Math.hypot(myCenter.x - enemyCenter.x, myCenter.y - enemyCenter.y);
-      
-      if (enemyDist > unit.attackRange) {
-        const dx = enemyCenter.x - myCenter.x;
-        const dy = enemyCenter.y - myCenter.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 0) {
-          const nextX = unit.x + (dx / dist) * currentSpeed * delta;
-          const nextY = unit.y + (dy / dist) * currentSpeed * delta;
-          const clamped = clampPointToArena(nextX, nextY);
-          unit.x = clamped.x;
-          unit.y = clamped.y;
-        }
-      } else {
-        // Attack enemy
-        if (unit.attackCooldown <= 0) {
-          if (unit.isRanged) {
-            const start = getUnitCenter(unit);
-            const end = getUnitCenter(unit.targetUnit);
-            spawnProjectile(start, end, () => {
-              if (unit.targetUnit && !unit.targetUnit.done) {
-                unit.targetUnit.hp -= unit.attackPower;
-                if (unit.targetUnit.hp <= 0) {
-                  unit.targetUnit.done = true;
-                }
-              }
-            });
-            unit.element.classList.add('attacking');
-            setTimeout(() => unit.element.classList.remove('attacking'), 200);
-          } else {
-            // Melee attack
-            unit.targetUnit.hp -= unit.attackPower;
-            unit.element.classList.add('attacking');
-            setTimeout(() => unit.element.classList.remove('attacking'), 200);
-            if (unit.targetUnit.hp <= 0) {
-              unit.targetUnit.done = true;
-            }
-          }
-          unit.attackCooldown = unit.attackSpeed;
-        }
-      }
-    } else if (unit.mode === 'move') {
-      // Initialize path if needed
-      if (!unit.path) {
-        unit.path = findPathToTarget(unit);
-        unit.currentPathIndex = 0;
-      }
-      
-      if (unit.path.length === 0) {
-        unit.mode = 'attack';
-        return true;
-      }
-      
-      const currentTarget = unit.path[unit.currentPathIndex];
-      const dx = currentTarget.x - unit.x;
-      const dy = currentTarget.y - unit.y;
-      const dist = Math.hypot(dx, dy);
-      
-      if (dist < 5) {
-        // Reached waypoint
-        unit.currentPathIndex++;
-        if (unit.currentPathIndex >= unit.path.length) {
-          unit.mode = 'attack';
-          return true;
-        }
-      } else {
-        const moveX = (dx / dist) * currentSpeed * delta;
-        const moveY = (dy / dist) * currentSpeed * delta;
-        const newX = unit.x + moveX;
-        const newY = unit.y + moveY;
+  const dx = Math.abs(en.x - my.x);
+  const dy = en.y - my.y;
+  const dist = Math.hypot(dx, dy);
 
-        // CR rule: units must not walk backwards, but allow small Y wiggle (±4px)
-        const tol = 4;
-        const goingBackwards =
-          (unit.side === 'friendly' && newY > unit.y + tol) ||
-          (unit.side === 'enemy' && newY < unit.y - tol);
+  // Friendly marches UP → enemy behind if dy > 0
+  if (unit.side === "friendly" && dy > 0 && dist < 40) return true;
 
-        if (goingBackwards) {
-          unit.path = findPathToTarget(unit);
-          unit.currentPathIndex = 0;
-          return true;
-        }
+  // Enemy marches DOWN → enemy behind if dy < 0
+  if (unit.side === "enemy" && dy < 0 && dist < 40) return true;
 
-        const willBeInRiver = isInRiver(newX, newY);
-        const willBeOnBridge = isOnBridge(newX, newY);
-        const currentlyOnBridge = isOnBridge(unit.x, unit.y);
-        
-        if (willBeInRiver && !(willBeOnBridge || currentlyOnBridge)) {
-          unit.path = findPathToTarget(unit);
-          unit.currentPathIndex = 0;
-          return true;
-        }
-        
-        const clamped = clampPointToArena(newX, newY);
-        unit.x = clamped.x;
-        unit.y = clamped.y;
-      }
-    } else if (unit.mode === 'attack') {
-      // Attack tower
-      if (!isTowerAlive(unit.targetKey)) {
-        const newTarget = resolveTargetTower(unit.side, unit.lane);
-        if (!isTowerAlive(newTarget)) {
-          unit.done = true;
-          unit.element.remove();
-          return false;
-        }
-        unit.targetKey = newTarget;
-        const newPos = getTargetPosition(unit.side, unit.targetKey);
-        unit.targetX = newPos.x;
-        unit.targetY = newPos.y;
-        unit.path = findPathToTarget(unit);
-        unit.currentPathIndex = 0;
-        unit.mode = 'move';
-        return true;
-      }
-      
-      const towerPos = state.battle.towerPositions[unit.targetKey];
-      if (!towerPos) {
-        unit.mode = 'move';
-        return true;
-      }
-      
-      const unitCenter = getUnitCenter(unit);
-      const dist = Math.hypot(unitCenter.x - towerPos.x, unitCenter.y - towerPos.y);
-      
-      if (dist > unit.attackRange) {
-        const dx = towerPos.x - unitCenter.x;
-        const dy = towerPos.y - unitCenter.y;
-        const moveDist = Math.hypot(dx, dy);
-        if (moveDist > 0) {
-          const nextX = unit.x + (dx / moveDist) * currentSpeed * delta;
-          const nextY = unit.y + (dy / moveDist) * currentSpeed * delta;
-          const clamped = clampPointToArena(nextX, nextY);
-          unit.x = clamped.x;
-          unit.y = clamped.y;
-        }
-      } else {
-        // Attack tower
-        if (unit.attackCooldown <= 0) {
-          if (unit.isRanged) {
-            spawnProjectile(
-              unitCenter,
-              { x: towerPos.x, y: towerPos.y },
-              () => damageTower(unit.targetKey, unit.attackPower, unit.side)
-            );
-            unit.element.classList.add('attacking');
-            setTimeout(() => unit.element.classList.remove('attacking'), 200);
-          } else {
-            damageTower(unit.targetKey, unit.attackPower, unit.side);
-            unit.element.classList.add('attacking');
-            setTimeout(() => unit.element.classList.remove('attacking'), 200);
-          }
-          unit.attackCooldown = unit.attackSpeed;
-        }
-      }
-    }
-    
-    // Update visual position
-    unit.element.style.left = `${unit.x}px`;
-    unit.element.style.top = `${unit.y}px`;
-    
-    return true;
-  });
+  return false;
 }
+function updateUnits(delta) {
+    const isOvertime = state.battle && state.battle.globalTime <= 30;
+    const speedMultiplier = isOvertime ? 1.2 : 1.0;
 
+    state.battle.units = state.battle.units.filter((unit) => {
+        if (unit.done || unit.hp <= 0) {
+            unit.element.remove();
+            return false;
+        }
+
+        if (unit.attackCooldown > 0) unit.attackCooldown -= delta;
+
+        const currentSpeed = unit.speed * speedMultiplier;
+
+        // Найти ближайшего врага, чтобы юнит мог переключить цель если нужно
+        const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5);
+        if (nearbyEnemy && (unit.mode !== "combat" || unit.targetUnit !== nearbyEnemy)) {
+            unit.mode = "combat";
+            unit.targetUnit = nearbyEnemy;
+        }
+
+        // ======== БОЕВОЙ РЕЖИМ ========
+        if (unit.mode === "combat") {
+            if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
+                unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
+
+                if (!unit.targetUnit) {
+                    const safeTarget = resolveTargetTower(unit.side, unit.lane);
+                    const pos = getTargetPosition(unit.side, safeTarget);
+
+                    unit.targetKey = safeTarget;
+                    unit.targetX = pos.x;
+                    unit.targetY = pos.y;
+
+                    unit.mode = "move";
+                    unit.path = findPathToTarget(unit);
+                    unit.currentPathIndex = 0;
+
+                    return true;
+                }
+            }
+
+            const myCenter = getUnitCenter(unit);
+            const enemyCenter = getUnitCenter(unit.targetUnit);
+            const dx = enemyCenter.x - myCenter.x;
+            const dy = enemyCenter.y - myCenter.y;
+            const dist = Math.hypot(dx, dy);
+
+            // === 1) НОВОЕ: шаг назад ТОЛЬКО если враг СЗАДИ ===
+            if (enemyBehindClose(unit)) {
+                const back = currentSpeed * 0.6;
+                const nx = unit.x - (dx / dist) * back * delta;
+                const ny = unit.y - (dy / dist) * back * delta;
+                const cl = clampPointToArena(nx, ny);
+
+                unit.x = cl.x;
+                unit.y = cl.y;
+                return true;
+            }
+
+            // === 2) ДВИЖЕНИЕ ВПЕРЁД ПО ДИАГОНАЛИ ===
+            if (dist > unit.attackRange) {
+                const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                const ny = unit.y + (dy / dist) * currentSpeed * delta;
+
+                const cl = clampPointToArena(nx, ny);
+
+                unit.x = cl.x;
+                unit.y = cl.y;
+                return true;
+            }
+
+            // === 3) АТАКА ===
+            if (unit.attackCooldown <= 0) {
+                if (unit.isRanged) {
+                    spawnProjectile(
+                        myCenter,
+                        enemyCenter,
+                        () => {
+                            if (unit.targetUnit && !unit.targetUnit.done) {
+                                unit.targetUnit.hp -= unit.attackPower;
+                                if (unit.targetUnit.hp <= 0) {
+                                    unit.targetUnit.done = true;
+                                }
+                            }
+                        }
+                    );
+                } else {
+                    unit.targetUnit.hp -= unit.attackPower;
+                    if (unit.targetUnit.hp <= 0) {
+                        unit.targetUnit.done = true;
+                    }
+                }
+                unit.attackCooldown = unit.attackSpeed;
+            }
+
+            return true;
+        }
+
+        // ======== РЕЖИМ ПЕРЕМЕЩЕНИЯ ========
+        if (unit.mode === "move") {
+            if (!unit.path) {
+                unit.path = findPathToTarget(unit);
+                unit.currentPathIndex = 0;
+            }
+
+            if (unit.path.length === 0) {
+                unit.mode = "attack";
+                return true;
+            }
+
+            const target = unit.path[unit.currentPathIndex];
+            const dx = target.x - unit.x;
+            const dy = target.y - unit.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 5) {
+                unit.currentPathIndex++;
+                if (unit.currentPathIndex >= unit.path.length) {
+                    unit.mode = "attack";
+                    return true;
+                }
+            } else {
+                const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                const ny = unit.y + (dy / dist) * currentSpeed * delta;
+
+                const cl = clampPointToArena(nx, ny);
+                unit.x = cl.x;
+                unit.y = cl.y;
+            }
+
+            return true;
+        }
+
+        // ======== РЕЖИМ АТАКИ БАШНИ ========
+        if (unit.mode === "attack") {
+            if (!isTowerAlive(unit.targetKey)) {
+                const newT = resolveTargetTower(unit.side, unit.lane);
+                if (!isTowerAlive(newT)) {
+                    unit.done = true;
+                    unit.element.remove();
+                    return false;
+                }
+
+                const pos = getTargetPosition(unit.side, newT);
+                unit.targetKey = newT;
+                unit.targetX = pos.x;
+                unit.targetY = pos.y;
+
+                unit.mode = "move";
+                unit.path = findPathToTarget(unit);
+                unit.currentPathIndex = 0;
+                return true;
+            }
+
+            const towerPos = state.battle.towerPositions[unit.targetKey];
+            const uC = getUnitCenter(unit);
+            const dist = Math.hypot(uC.x - towerPos.x, uC.y - towerPos.y);
+
+            if (dist > unit.attackRange) {
+                const dx = towerPos.x - uC.x;
+                const dy = towerPos.y - uC.y;
+                const d2 = Math.hypot(dx, dy);
+
+                const nx = unit.x + (dx / d2) * currentSpeed * delta;
+                const ny = unit.y + (dy / d2) * currentSpeed * delta;
+
+                const cl = clampPointToArena(nx, ny);
+                unit.x = cl.x;
+                unit.y = cl.y;
+            } else {
+                if (unit.attackCooldown <= 0) {
+                    damageTower(unit.targetKey, unit.attackPower, unit.side);
+                    unit.attackCooldown = unit.attackSpeed;
+                }
+            }
+
+            return true;
+        }
+
+        // Обновление позиции DOM
+        unit.element.style.left = `${unit.x}px`;
+        unit.element.style.top = `${unit.y}px`;
+
+        return true;
+    });
+}
 function castSpell(card, position) {
   const key = resolveTargetTower('friendly', position.lane);
   const tower = state.battle.towers[key];
