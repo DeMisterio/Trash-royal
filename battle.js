@@ -393,52 +393,49 @@ function playerIsLosing() {
   return playerScore < enemyScore;
 }
 
+
 function enemyInCriticalDanger() {
-  const b = state.battle;
-  if (!b || !b.towers) return false;
+    const t = state.battle.towers;
 
-  // Use the global towerDefaults (declared as `const towerDefaults = ...`)
-  const td = typeof towerDefaults !== 'undefined' ? towerDefaults : { princess: 0, king: 0 };
+    const left  = t["enemy-left"];
+    const right = t["enemy-right"];
+    const king  = t["enemy-king"];
 
-  const enemyLeftHp = b.towers["enemy-left"]?.hp || 0;
-  const enemyRightHp = b.towers["enemy-right"]?.hp || 0;
-  const enemyKingHp = b.towers["enemy-king"]?.hp || 0;
+    if (!left || !right || !king) return false;
 
-  return (
-    (td.princess > 0 && enemyLeftHp < td.princess * 0.2) ||
-    (td.princess > 0 && enemyRightHp < td.princess * 0.2) ||
-    (td.king > 0 && enemyKingHp < td.king * 0.25)
-  );
+    return (
+        left.hp  < left.max  * 0.25 ||
+        right.hp < right.max * 0.25 ||
+        king.hp  < king.max  * 0.30
+    );
 }
-
-
 function processEnemyEmotions(enemy) {
-  if (!state.battle || !enemy) return;
-  if ((enemy.emoteTimer || 0) > 0) return;
+    if (!enemy) return;
 
-  // 1. You're losing -> enemy trolls
-  if (playerIsLosing()) {
-    const toxic = ["👎", "😂", "😎", "👏"];
-    showEmote(toxic[Math.floor(Math.random() * toxic.length)], "enemy");
+    enemy.emoteTimer -= 1;
+    if (enemy.emoteTimer > 0) return;
+
+    if (enemyInCriticalDanger()) {
+        showEmote("😡", "enemy");
+        enemy.emoteTimer = randomBetween(3, 5);
+        return;
+    }
+
+    const playerCrowns = state.battle.crowns.player;
+    const enemyCrowns  = state.battle.crowns.enemy;
+
+    if (playerCrowns > enemyCrowns) {
+        showEmote("👎", "enemy");
+    } else if (enemyCrowns > playerCrowns) {
+        showEmote("😎", "enemy");
+    } else {
+        if (Math.random() < 0.2) {
+            const pool = ["😀","😡","👎","😢","👏"];
+            showEmote(pool[Math.floor(Math.random()*pool.length)], "enemy");
+        }
+    }
+
     enemy.emoteTimer = randomBetween(3, 6);
-    return;
-  }
-
-  // 2. Enemy in critical danger
-  if (enemyInCriticalDanger()) {
-    const panic = ["😡", "😢", "😨", "💀"];
-    showEmote(panic[Math.floor(Math.random() * panic.length)], "enemy");
-    enemy.emoteTimer = randomBetween(2, 4);
-    return;
-  }
-
-  // 3. Neutral behaviour (rare)
-  if (Math.random() < 0.12) {
-    const casual = ["😀", "😏", "🤨"];
-    showEmote(casual[Math.floor(Math.random() * casual.length)], "enemy");
-  }
-
-  enemy.emoteTimer = randomBetween(4, 7);
 }
 
 function stopAllSound() {
