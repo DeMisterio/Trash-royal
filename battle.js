@@ -974,14 +974,11 @@ function updateUnits(delta) {
         const newX = unit.x + moveX;
         const newY = unit.y + moveY;
 
-        // CR rule: units are NEVER allowed to move backward
-        // Forward direction:
-        // Friendly pushes UP (newY < unit.y)
-        // Enemy pushes DOWN (newY > unit.y)
-        // Backwards is the opposite.
+        // CR rule: units must not walk backwards, but allow small Y wiggle (±4px)
+        const tol = 4;
         const goingBackwards =
-          (unit.side === 'friendly' && newY > unit.y) ||
-          (unit.side === 'enemy' && newY < unit.y);
+          (unit.side === 'friendly' && newY > unit.y + tol) ||
+          (unit.side === 'enemy' && newY < unit.y - tol);
 
         if (goingBackwards) {
           unit.path = findPathToTarget(unit);
