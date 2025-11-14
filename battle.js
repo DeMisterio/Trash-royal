@@ -370,57 +370,75 @@ function isUnderAttack() {
 }
 
 function playerIsLosing() {
-    const b = state.battle;
-    const playerScore =
-        b.crowns.player * 10000 +
-        (b.towers["friendly-left"].hp +
-         b.towers["friendly-right"].hp +
-         b.towers["friendly-king"].hp);
+  const b = state.battle;
+  if (!b) return false;
 
-    const enemyScore =
-        b.crowns.enemy * 10000 +
-        (b.towers["enemy-left"].hp +
-         b.towers["enemy-right"].hp +
-         b.towers["enemy-king"].hp);
+  const t = b.towers || {};
+  const playerCrowns = (b.crowns && b.crowns.player) || 0;
+  const enemyCrowns = (b.crowns && b.crowns.enemy) || 0;
 
-    return playerScore < enemyScore;
+  const playerTowerHp =
+    (t["friendly-left"]?.hp || 0) +
+    (t["friendly-right"]?.hp || 0) +
+    (t["friendly-king"]?.hp || 0);
+
+  const enemyTowerHp =
+    (t["enemy-left"]?.hp || 0) +
+    (t["enemy-right"]?.hp || 0) +
+    (t["enemy-king"]?.hp || 0);
+
+  const playerScore = playerCrowns * 10000 + playerTowerHp;
+  const enemyScore = enemyCrowns * 10000 + enemyTowerHp;
+
+  return playerScore < enemyScore;
 }
 
 function enemyInCriticalDanger() {
-    const b = state.battle;
-    return (
-        b.towers["enemy-left"].hp < b.towerDefaults.princess * 0.2 ||
-        b.towers["enemy-right"].hp < b.towerDefaults.princess * 0.2 ||
-        b.towers["enemy-king"].hp < b.towerDefaults.king * 0.25
-    );
+  const b = state.battle;
+  if (!b || !b.towers) return false;
+
+  // Use the global towerDefaults (declared as `const towerDefaults = ...`)
+  const td = typeof towerDefaults !== 'undefined' ? towerDefaults : { princess: 0, king: 0 };
+
+  const enemyLeftHp = b.towers["enemy-left"]?.hp || 0;
+  const enemyRightHp = b.towers["enemy-right"]?.hp || 0;
+  const enemyKingHp = b.towers["enemy-king"]?.hp || 0;
+
+  return (
+    (td.princess > 0 && enemyLeftHp < td.princess * 0.2) ||
+    (td.princess > 0 && enemyRightHp < td.princess * 0.2) ||
+    (td.king > 0 && enemyKingHp < td.king * 0.25)
+  );
 }
 
+
 function processEnemyEmotions(enemy) {
-    if (enemy.emoteTimer > 0) return;
+  if (!state.battle || !enemy) return;
+  if ((enemy.emoteTimer || 0) > 0) return;
 
-    // 1. Ты проигрываешь -> он троллит
-    if (playerIsLosing()) {
-        const toxic = ["👎", "😂", "😎", "👏"];
-        showEmote(toxic[Math.floor(Math.random() * toxic.length)], "enemy");
-        enemy.emoteTimer = randomBetween(3, 6);
-        return;
-    }
+  // 1. You're losing -> enemy trolls
+  if (playerIsLosing()) {
+    const toxic = ["👎", "😂", "😎", "👏"];
+    showEmote(toxic[Math.floor(Math.random() * toxic.length)], "enemy");
+    enemy.emoteTimer = randomBetween(3, 6);
+    return;
+  }
 
-    // 2. Он в критической жопе
-    if (enemyInCriticalDanger()) {
-        const panic = ["😡", "😢", "😨", "💀"];
-        showEmote(panic[Math.floor(Math.random() * panic.length)], "enemy");
-        enemy.emoteTimer = randomBetween(2, 4);
-        return;
-    }
+  // 2. Enemy in critical danger
+  if (enemyInCriticalDanger()) {
+    const panic = ["😡", "😢", "😨", "💀"];
+    showEmote(panic[Math.floor(Math.random() * panic.length)], "enemy");
+    enemy.emoteTimer = randomBetween(2, 4);
+    return;
+  }
 
-    // 3. Нейтральное поведение (редко)
-    if (Math.random() < 0.12) {
-        const casual = ["😀", "😏", "🤨"];
-        showEmote(casual[Math.floor(Math.random() * casual.length)], "enemy");
-    }
+  // 3. Neutral behaviour (rare)
+  if (Math.random() < 0.12) {
+    const casual = ["😀", "😏", "🤨"];
+    showEmote(casual[Math.floor(Math.random() * casual.length)], "enemy");
+  }
 
-    enemy.emoteTimer = randomBetween(4, 7);
+  enemy.emoteTimer = randomBetween(4, 7);
 }
 
 function stopAllSound() {
