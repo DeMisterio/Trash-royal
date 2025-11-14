@@ -3,7 +3,7 @@
   "name": "Aoaoa",
   "type": "troop",
   "rarity": "common",
-  "elixir": 1,
+  "elixir": 3,
   "description": "Auto-generated stats for Aoaoa. Adjust to balance.",
   "sprite": "Characters/Aoaoa.png",
   "stats": {
