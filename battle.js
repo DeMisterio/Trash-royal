@@ -470,11 +470,14 @@ function showEmote(emote, side) {
 
 function updateEnemyAI(delta) {
   if (!state.battle) return;
-  state.battle.enemy.nextPlay -= delta;
-  state.battle.enemy.emoteTimer = (state.battle.enemy.emoteTimer || 0) - delta;
-  
-  // NPC emotions
-  if (state.battle.enemy.emoteTimer <= 0) {
+  const enemy = state.battle.enemy;
+
+  // Таймер "когда играть карту"
+  enemy.nextPlay -= delta;
+  enemy.emoteTimer = (enemy.emoteTimer || 0) - delta;
+
+  // --- ЭМОЦИИ ОСТАВЛЯЕМ КАК БЫЛО ---
+  if (enemy.emoteTimer <= 0) {
     const friendlyTowersAlive = ['friendly-left', 'friendly-right', 'friendly-king']
       .filter(key => isTowerAlive(key)).length;
     const enemyTowersAlive = ['enemy-left', 'enemy-right', 'enemy-king']
@@ -482,40 +485,53 @@ function updateEnemyAI(delta) {
     
     let emote = null;
     if (friendlyTowersAlive < enemyTowersAlive) {
-      // NPC is winning - teasing
       const teasingEmotes = ['😎', '👏', '👎'];
       emote = teasingEmotes[Math.floor(Math.random() * teasingEmotes.length)];
     } else if (friendlyTowersAlive > enemyTowersAlive) {
-      // NPC is losing - angry or sad
       const losingEmotes = ['😡', '😢', '👎'];
       emote = losingEmotes[Math.floor(Math.random() * losingEmotes.length)];
     } else if (Math.random() < 0.1) {
-      // Random emote sometimes
       emote = ['😀', '😎', '😡', '👏', '😢', '👎'][Math.floor(Math.random() * 6)];
     }
     
     if (emote) {
       showEmote(emote, 'enemy');
-      state.battle.enemy.emoteTimer = randomBetween(5, 10);
+      enemy.emoteTimer = randomBetween(5, 10);
     } else {
-      state.battle.enemy.emoteTimer = randomBetween(2, 4);
+      enemy.emoteTimer = randomBetween(2, 4);
     }
   }
-  
-  if (state.battle.enemy.nextPlay <= 0) {
-    const deckIds = (state.battle.opponent?.deckIds || getAvailableCardIds());
-    let troopPool = deckIds.map((id) => state.characters[id]).filter((card) => card && card.type !== 'spell');
-    if (!troopPool.length) troopPool = getTroopCards();
-    troopPool = troopPool.filter((card) => card.elixir <= state.battle.enemy.elixir);
-    if (troopPool.length) {
-      const card = troopPool[Math.floor(Math.random() * troopPool.length)];
-      state.battle.enemy.elixir -= card.elixir;
-      spawnEnemyUnit(card);
-    }
-    state.battle.enemy.nextPlay = randomBetween(3, 6);
-  }
-}
 
+  // Ещё не время ходить
+  if (enemy.nextPlay > 0) return;
+
+  // --- НОВЫЙ МОЗГ ---
+
+  // 1) Оценить обстановку по линиям
+  const lanes = evaluateLanes();
+
+  // 2) Выбрать линию и режим (def / push)
+  const decision = pickLane(lanes); // { lane, mode }
+
+  // 3) Выбрать лучшую карту под этот режим
+  const card = pickEnemyCard(decision.mode);
+
+  // 4) Если нет карты или элексир не хватает – просто подождать
+  if (!card || enemy.elixir < card.elixir) {
+    enemy.nextPlay = randomBetween(1.5, 3); // чуть подождать
+    return;
+  }
+
+  // 5) Сыграть карту
+  enemy.elixir -= card.elixir;
+  enemy.cooldowns = enemy.cooldowns || {};
+  enemy.cooldowns[card.id] = CARD_COOLDOWN;
+
+  spawnEnemyUnitAtLane(card, decision.lane);
+
+  // Следующее решение через 3–6 секунд
+  enemy.nextPlay = randomBetween(3, 6);
+}
 function renderBattleHUD() {
   if (!state.battle) return;
   const phase = battlePhases[state.battle.phaseIndex];
@@ -849,7 +865,139 @@ function findNearestEnemy(unit, range) {
       })[0]?.unit || null
   );
 }
+function evaluateLanes() {
+  const lanes = {
+    left:   { friendlyStrength: 0, enemyStrength: 0 },
+    middle: { friendlyStrength: 0, enemyStrength: 0 },
+    right:  { friendlyStrength: 0, enemyStrength: 0 }
+  };
 
+  const { width } = getArenaDimensions();
+
+  const laneFromUnit = (unit) => {
+    if (unit.lane === 'left' || unit.lane === 'middle' || unit.lane === 'right') {
+      return unit.lane;
+    }
+    const center = getUnitCenter(unit);
+    if (!width) return 'middle';
+    if (center.x < width / 3) return 'left';
+    if (center.x > (2 * width) / 3) return 'right';
+    return 'middle';
+  };
+
+  state.battle.units.forEach((u) => {
+    if (u.done || u.hp <= 0) return;
+    const lane = laneFromUnit(u);
+    const value = (u.attackPower || 0) + (u.hp || 0) * 0.15;
+    if (u.side === 'friendly') {
+      lanes[lane].friendlyStrength += value;
+    } else if (u.side === 'enemy') {
+      lanes[lane].enemyStrength += value;
+    }
+  });
+
+  return lanes;
+}
+
+// Выбор линии: либо дефаемся, либо пушим
+function pickLane(lanes) {
+  let bestDefLane = 'middle';
+  let bestDefScore = 0;
+
+  Object.keys(lanes).forEach((lane) => {
+    const stats = lanes[lane];
+    const threat = stats.friendlyStrength - stats.enemyStrength;
+    if (threat > bestDefScore) {
+      bestDefScore = threat;
+      bestDefLane = lane;
+    }
+  });
+
+  // Если нас реально давят где-то, дефаем там
+  if (bestDefScore > 0) {
+    return { lane: bestDefLane, mode: 'def' };
+  }
+
+  // Иначе выбираем линию, где у enemy преимущество → пуш
+  let bestPushLane = 'middle';
+  let bestPushScore = -Infinity;
+
+  Object.keys(lanes).forEach((lane) => {
+    const stats = lanes[lane];
+    const advantage = stats.enemyStrength - stats.friendlyStrength;
+    if (advantage > bestPushScore) {
+      bestPushScore = advantage;
+      bestPushLane = lane;
+    }
+  });
+
+  return { lane: bestPushLane, mode: 'push' };
+}
+
+// Роли карт для выбора (очень грубо, но лучше рандома)
+const ENEMY_ROLE_MAP = {
+  'giant': 'tank',
+  'knight': 'tank',
+  'hog-rider': 'tank',
+  'baby-dragon': 'aoe',
+  'archers': 'dps',
+  'minions': 'dps',
+  'musketeer': 'dps'
+};
+
+// Выбор лучшей карты для def или push
+function pickEnemyCard(mode) {
+  const enemy = state.battle.enemy;
+  const deckIds = (state.battle.opponent?.deckIds || getAvailableCardIds());
+  let pool = deckIds
+    .map((id) => state.characters[id])
+    .filter((card) => card && card.type !== 'spell'); // враг пока играет только юнитами
+
+  if (!pool.length) pool = getTroopCards();
+
+  // Элексир ограничение
+  pool = pool.filter((card) => card.elixir <= enemy.elixir);
+
+  // Кулдауны врага
+  enemy.cooldowns = enemy.cooldowns || {};
+  pool = pool.filter((card) => (enemy.cooldowns[card.id] || 0) <= 0);
+
+  if (!pool.length) return null;
+
+  const scoreCard = (card) => {
+    const role = ENEMY_ROLE_MAP[card.id] || 'dps';
+    const hp   = card.health || card.stats?.health || 0;
+    const dmg  = card.attackPower || card.stats?.damage || 0;
+    const rng  = card.attackRange || card.stats?.range || 1;
+
+    if (mode === 'def') {
+      let s = dmg * 1.2 + rng * 8;
+      if (role === 'aoe') s += 40;
+      if (role === 'dps') s += 20;
+      if (role === 'tank') s += 5;
+      return s;
+    } else {
+      // push
+      let s = hp * 0.25 + dmg;
+      if (role === 'tank') s += 40;
+      if (role === 'dps') s += 10;
+      return s;
+    }
+  };
+
+  return pool.reduce((best, card) => {
+    if (!best) return card;
+    return scoreCard(card) > scoreCard(best) ? card : best;
+  }, null);
+}
+
+// Спавн юнита врага в конкретной линии
+function spawnEnemyUnitAtLane(card, lane) {
+  const safeLane = lane || ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
+  const x = getLaneAnchorX(safeLane);
+  const y = UNIT_RADIUS + 10;
+  spawnUnit(card, 'enemy', { x, y, lane: safeLane });
+}
 function updateUnits(delta) {
   // Apply overtime speed boost
   const isOvertime = state.battle && state.battle.globalTime <= 30;
@@ -1455,9 +1603,20 @@ function bindEvents() {
 
 function tickOneSecond() {
   if (!state.battle) return;
+
+  // Player cooldowns
   Object.keys(state.battle.player.cooldowns).forEach((cardId) => {
     state.battle.player.cooldowns[cardId] = Math.max(0, state.battle.player.cooldowns[cardId] - 1);
   });
+
+  // Enemy cooldowns
+  if (!state.battle.enemy.cooldowns) {
+    state.battle.enemy.cooldowns = {};
+  } else {
+    Object.keys(state.battle.enemy.cooldowns).forEach((cardId) => {
+      state.battle.enemy.cooldowns[cardId] = Math.max(0, state.battle.enemy.cooldowns[cardId] - 1);
+    });
+  }
   renderBattleHand();
 }
 
