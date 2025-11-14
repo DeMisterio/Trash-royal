@@ -1026,7 +1026,6 @@ function updateUnits(delta) {
     const speedMultiplier = isOvertime ? 1.2 : 1.0;
 
     state.battle.units = state.battle.units.filter((unit) => {
-
         if (unit.done || unit.hp <= 0) {
             unit.element.remove();
             return false;
@@ -1035,108 +1034,88 @@ function updateUnits(delta) {
         if (unit.attackCooldown > 0) unit.attackCooldown -= delta;
 
         const currentSpeed = unit.speed * speedMultiplier;
+        let moved = false;
 
-        // Цель рядом? Переключаемся
+        // Ищем ближайшего врага
         const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5);
         if (nearbyEnemy && (unit.mode !== "combat" || unit.targetUnit !== nearbyEnemy)) {
             unit.mode = "combat";
             unit.targetUnit = nearbyEnemy;
         }
 
-        // =========================
-        // ======== COMBAT =========
-        // =========================
+        // =============================================
+        //                 COMBAT MODE
+        // =============================================
         if (unit.mode === "combat") {
 
-            // Цель умерла → ищем новую
+            // Если противник умер — возвращаемся к башне
             if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
-                unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
+                const safeTarget = resolveTargetTower(unit.side, unit.lane);
+                const pos = getTargetPosition(unit.side, safeTarget);
 
-                if (!unit.targetUnit) {
-                    // Переход на башню
-                    const safeTarget = resolveTargetTower(unit.side, unit.lane);
-                    const pos = getTargetPosition(unit.side, safeTarget);
+                unit.targetKey = safeTarget;
+                unit.targetX = pos.x;
+                unit.targetY = pos.y;
 
-                    unit.targetKey = safeTarget;
-                    unit.targetX = pos.x;
-                    unit.targetY = pos.y;
+                unit.mode = "move";
+                unit.path = findPathToTarget(unit);
+                unit.currentPathIndex = 0;
 
-                    unit.mode = "move";
-                    unit.path = findPathToTarget(unit);
-                    unit.currentPathIndex = 0;
-                    return true;
+            } else {
+                const myC = getUnitCenter(unit);
+                const enemyC = getUnitCenter(unit.targetUnit);
+                const dx = enemyC.x - myC.x;
+                const dy = enemyC.y - myC.y;
+                const dist = Math.hypot(dx, dy);
+
+                // === шаг назад ТОЛЬКО если враг сзади ===
+                if (enemyBehindClose(unit)) {
+                    const back = currentSpeed * 0.55;
+                    const nx = unit.x - (dx / dist) * back * delta;
+                    const ny = unit.y - (dy / dist) * back * delta;
+                    const cl = clampPointToArena(nx, ny);
+
+                    unit.x = smoothStep(unit.x, cl.x, 0.25);
+                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    moved = true;
                 }
-            }
+                // === движение вперёд по диагонали ===
+                else if (dist > unit.attackRange) {
+                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
+                    const cl = clampPointToArena(nx, ny);
 
-            const myCenter = getUnitCenter(unit);
-            const enemyCenter = getUnitCenter(unit.targetUnit);
-
-            const dx = enemyCenter.x - myCenter.x;
-            const dy = enemyCenter.y - myCenter.y;
-            const dist = Math.hypot(dx, dy);
-
-            // 1) Шаг назад если враг сзади
-            if (enemyBehindClose(unit)) {
-                const back = currentSpeed * 0.6;
-
-                const nx = unit.x - (dx / dist) * back * delta;
-                const ny = unit.y - (dy / dist) * back * delta;
-
-                const cl = clampPointToArena(nx, ny);
-
-                unit.x = smoothStep(unit.x, cl.x, 0.22);
-                unit.y = smoothStep(unit.y, cl.y, 0.22);
-
-                unit.element.style.left = `${unit.x}px`;
-                unit.element.style.top = `${unit.y}px`;
-
-                return true;
-            }
-
-            // 2) Продвижение вперёд по диагонали
-            if (dist > unit.attackRange) {
-
-                const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                const ny = unit.y + (dy / dist) * currentSpeed * delta;
-
-                const cl = clampPointToArena(nx, ny);
-
-                unit.x = smoothStep(unit.x, cl.x, 0.22);
-                unit.y = smoothStep(unit.y, cl.y, 0.22);
-
-                unit.element.style.left = `${unit.x}px`;
-                unit.element.style.top = `${unit.y}px`;
-
-                return true;
-            }
-
-            // 3) Атака
-            if (unit.attackCooldown <= 0) {
-                if (unit.isRanged) {
-                    spawnProjectile(
-                        myCenter,
-                        enemyCenter,
-                        () => {
-                            if (unit.targetUnit && !unit.targetUnit.done) {
-                                unit.targetUnit.hp -= unit.attackPower;
-                                if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
+                    unit.x = smoothStep(unit.x, cl.x, 0.25);
+                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    moved = true;
+                }
+                // === атака ===
+                else {
+                    if (unit.attackCooldown <= 0) {
+                        if (unit.isRanged) {
+                            spawnProjectile(myC, enemyC, () => {
+                                if (unit.targetUnit && !unit.targetUnit.done) {
+                                    unit.targetUnit.hp -= unit.attackPower;
+                                    if (unit.targetUnit.hp <= 0) {
+                                        unit.targetUnit.done = true;
+                                    }
+                                }
+                            });
+                        } else {
+                            unit.targetUnit.hp -= unit.attackPower;
+                            if (unit.targetUnit.hp <= 0) {
+                                unit.targetUnit.done = true;
                             }
                         }
-                    );
-                } else {
-                    unit.targetUnit.hp -= unit.attackPower;
-                    if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
+                        unit.attackCooldown = unit.attackSpeed;
+                    }
                 }
-
-                unit.attackCooldown = unit.attackSpeed;
             }
-
-            return true;
         }
 
-        // =========================
-        // ========= MOVE ==========
-        // =========================
+        // =============================================
+        //                 MOVE MODE
+        // =============================================
         if (unit.mode === "move") {
 
             if (!unit.path) {
@@ -1144,46 +1123,37 @@ function updateUnits(delta) {
                 unit.currentPathIndex = 0;
             }
 
-            if (unit.path.length === 0) {
-                unit.mode = "attack";
-                return true;
-            }
+            if (unit.path.length > 0) {
+                const target = unit.path[unit.currentPathIndex];
+                const dx = target.x - unit.x;
+                const dy = target.y - unit.y;
+                const dist = Math.hypot(dx, dy);
 
-            const target = unit.path[unit.currentPathIndex];
+                if (dist < 5) {
+                    unit.currentPathIndex++;
+                    if (unit.currentPathIndex >= unit.path.length) {
+                        unit.mode = "attack";
+                    }
+                } else {
+                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
+                    const cl = clampPointToArena(nx, ny);
 
-            const dx = target.x - unit.x;
-            const dy = target.y - unit.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < 5) {
-                unit.currentPathIndex++;
-                if (unit.currentPathIndex >= unit.path.length) {
-                    unit.mode = "attack";
-                    return true;
+                    unit.x = smoothStep(unit.x, cl.x, 0.25);
+                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    moved = true;
                 }
             } else {
-                const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                const ny = unit.y + (dy / dist) * currentSpeed * delta;
-
-                const cl = clampPointToArena(nx, ny);
-
-                unit.x = smoothStep(unit.x, cl.x, 0.22);
-                unit.y = smoothStep(unit.y, cl.y, 0.22);
-
-                unit.element.style.left = `${unit.x}px`;
-                unit.element.style.top = `${unit.y}px`;
+                unit.mode = "attack";
             }
-
-            return true;
         }
 
-        // =========================
-        // ======= ATTACK ==========
-        // =========================
+        // =============================================
+        //                 ATTACK TOWER
+        // =============================================
         if (unit.mode === "attack") {
 
             if (!isTowerAlive(unit.targetKey)) {
-
                 const newT = resolveTargetTower(unit.side, unit.lane);
                 if (!isTowerAlive(newT)) {
                     unit.done = true;
@@ -1192,7 +1162,6 @@ function updateUnits(delta) {
                 }
 
                 const pos = getTargetPosition(unit.side, newT);
-
                 unit.targetKey = newT;
                 unit.targetX = pos.x;
                 unit.targetY = pos.y;
@@ -1200,39 +1169,35 @@ function updateUnits(delta) {
                 unit.mode = "move";
                 unit.path = findPathToTarget(unit);
                 unit.currentPathIndex = 0;
-
-                return true;
-            }
-
-            const towerPos = state.battle.towerPositions[unit.targetKey];
-            const uC = getUnitCenter(unit);
-
-            const dx = towerPos.x - uC.x;
-            const dy = towerPos.y - uC.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist > unit.attackRange) {
-
-                const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                const ny = unit.y + (dy / dist) * currentSpeed * delta;
-
-                const cl = clampPointToArena(nx, ny);
-
-                unit.x = smoothStep(unit.x, cl.x, 0.22);
-                unit.y = smoothStep(unit.y, cl.y, 0.22);
-
-                unit.element.style.left = `${unit.x}px`;
-                unit.element.style.top = `${unit.y}px`;
-
             } else {
-                if (unit.attackCooldown <= 0) {
-                    damageTower(unit.targetKey, unit.attackPower, unit.side);
-                    unit.attackCooldown = unit.attackSpeed;
+                const towerPos = state.battle.towerPositions[unit.targetKey];
+                const myC = getUnitCenter(unit);
+                const dx = towerPos.x - myC.x;
+                const dy = towerPos.y - myC.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > unit.attackRange) {
+                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
+                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
+                    const cl = clampPointToArena(nx, ny);
+
+                    unit.x = smoothStep(unit.x, cl.x, 0.25);
+                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    moved = true;
+                } else {
+                    if (unit.attackCooldown <= 0) {
+                        damageTower(unit.targetKey, unit.attackPower, unit.side);
+                        unit.attackCooldown = unit.attackSpeed;
+                    }
                 }
             }
-
-            return true;
         }
+
+        // =============================================
+        // ОБНОВЛЕНИЕ ВИЗУАЛА
+        // =============================================
+        unit.element.style.left = `${unit.x}px`;
+        unit.element.style.top = `${unit.y}px`;
 
         return true;
     });
