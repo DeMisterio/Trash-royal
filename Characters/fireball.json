@@ -3,13 +3,13 @@
   "name": "Fireball",
   "type": "spell",
   "rarity": "rare",
-  "elixir": 3,
+  "elixir": 4,
   "description": "Medium area damage spell.",
   "sprite": "Characters/fireball.png",
   "stats": {
-    "damage": 1972,
+    "damage": 1572,
     "towerDamageModifier": 0.35,
-    "radius": 50.5,
+    "radius": 30.5,
     "travelTime": 0.7
   }
 }

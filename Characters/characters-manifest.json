@@ -1,5 +1,5 @@
 {
-  "version": 1763079581637,
+  "version": 1763159374465,
   "characters": [
     "67",
     "Aoaoa",
@@ -14,7 +14,6 @@
     "giant",
     "hog-rider",
     "knight",
-    "Taylor",
     "minions",
     "musketeer"
   ],
@@ -26,10 +25,6 @@
     {
       "base": "Aoaoa",
       "ext": ".png"
-    },
-    {
-      "base":"Taylor",
-      "ext":".jpg"
     },
     {
       "base": "archers",

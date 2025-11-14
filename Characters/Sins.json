@@ -7,11 +7,11 @@
   "description": "Auto-generated stats for Sins. Adjust to balance.",
   "sprite": "Characters/Sins.jpeg",
   "stats": {
-    "health": 2536,
+    "health": 3936,
     "damage": 354,
-    "attackSpeed": 1.22,
+    "attackSpeed": 1.83,
     "range": 2.2,
-    "speed": 60,
+    "speed": 36,
     "targeting": "air-ground",
     "spawnCount": 1,
     "splashRadius": 0

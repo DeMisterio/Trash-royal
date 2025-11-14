@@ -7,11 +7,11 @@
   "description": "Single target sharpshooter.",
   "sprite": "Characters/musketeer.png",
   "stats": {
-    "health": 898,
-    "damage": 260,
+    "health": 1398,
+    "damage": 360,
     "attackSpeed": 1.1,
-    "range": 9,
-    "speed": 91,
+    "range": 6,
+    "speed": 65,
     "targeting": "air-ground",
     "spawnCount": 1,
     "splashRadius": 0

@@ -9,73 +9,6 @@ const builtInCharacters = [
   { id: 'minions', name: 'Minions', type: 'troop', rarity: 'common', elixir: 3, description: 'Fast flying melee attackers.', emoji: '🦅', sprite: 'Characters/minions.png', stats: { health: 190, damage: 90, attackSpeed: 1, range: 1, speed: 90, targeting: 'air-ground', spawnCount: 3, splashRadius: 0 } },
   { id: 'hog-rider', name: 'Hog Rider', type: 'troop', rarity: 'rare', elixir: 4, description: 'Jumps river and rushes for towers.', emoji: '🐗', sprite: 'Characters/hog-rider.png', stats: { health: 1696, damage: 264, attackSpeed: 1.5, range: 0.8, speed: 96, targeting: 'buildings', spawnCount: 1, splashRadius: 0 } }
 ];
-function smoothStep(from, to, factor) {
-    if (isNaN(from)) return to; // аварийный фикс
-    return from + (to - from) * factor;
-}
-
-const synergy = {
-    tank:        { ranged:3, splash:3, swarm:2, bruiser:1 },
-    juggernaut:  { ranged:3, swarm:3, splash:2 },
-    bruiser:     { ranged:2, swarm:3, splash:1 },
-    siege:       { ranged:3, swarm:2 },
-    splash:      { swarm:3, tank:2, juggernaut:2 },
-    swarm:       { tank:2, juggernaut:3, splash:2 },
-    ranged:      { tank:3, juggernaut:3, siege:3 }
-};
-
-function generateSmartCombos(deck) {
-    // распределяем карты по ролям
-    const byRole = {};
-    deck.forEach(card => {
-        const r = card.role;
-        if (!byRole[r]) byRole[r] = [];
-        byRole[r].push(card);
-    });
-
-    const combos = [];
-
-    function addCombo(cards) {
-        combos.push(cards.map(c => c.id));
-    }
-
-    // === 1) ДВУХКАРТОЧНЫЕ КОМБО ПО СИНЕРГИИ
-    for (const r1 in byRole) {
-        for (const r2 in byRole) {
-            if (synergy[r1] && synergy[r1][r2] >= 2) {
-                for (const c1 of byRole[r1]) {
-                    for (const c2 of byRole[r2]) {
-                        if (c1.id !== c2.id) {
-                            addCombo([c1, c2]);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // === 2) "Большие пуши": tank + splash + ranged
-    if (byRole.tank && byRole.splash && byRole.ranged) {
-        for (const t of byRole.tank)
-            for (const s of byRole.splash)
-                for (const r of byRole.ranged)
-                    addCombo([t, s, r]);
-    }
-
-    // === 3) Juggernaut push: juggernaut + ranged + swarm
-    if (byRole.juggernaut && byRole.ranged && byRole.swarm) {
-        for (const j of byRole.juggernaut)
-            for (const r of byRole.ranged)
-                for (const w of byRole.swarm)
-                    addCombo([j, r, w]);
-    }
-
-    return combos;
-}
-
-
-
-
 const DECK_STORAGE_KEY = 'clashRoyaleDeck';
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;
@@ -268,37 +201,6 @@ function getUnitCenter(unit) {
   return { x: unit.x + UNIT_RADIUS, y: unit.y + UNIT_RADIUS };
 }
 
-
-function detectRole(card) {
-    const hp = card.stats.health;
-    const dmg = card.stats.damage;
-    const range = card.stats.range;
-    const count = card.stats.spawnCount;
-    const targeting = card.stats.targeting;
-
-    // атакует здания → осадный
-    if (targeting === "buildings") return "siege";
-
-    // рой
-    if (count >= 3 && hp < 600) return "swarm";
-
-    // дальний бой
-    if (range >= 3.5) return "ranged";
-
-    // танк
-    if (hp >= 2500 && dmg < 250) return "tank";
-
-    // джаггернаут (много HP, много урона)
-    if (hp >= 3500 && dmg >= 300) return "juggernaut";
-
-    // брузер
-    if (hp >= 900 && dmg >= 200 && range <= 2) return "bruiser";
-
-    // fallback
-    return "melee";
-}
-
-
 function cacheElements() {
   elements.battleModal = document.getElementById('battleModal');
   elements.battleTimer = document.getElementById('battleTimer');
@@ -353,92 +255,6 @@ function playSoundtrack(name) {
   });
   audio.currentTime = 0;
   audio.play().catch(() => {});
-}
-
-function classifyUnit(card) {
-    if (card.type === "spell") return "spell";
-    if (card.stats.health >= 1500) return "tank";
-    if (card.stats.range >= 4) return "ranged";
-    return "melee";
-}
-
-function isUnderAttack() {
-    return state.battle.units.some(u =>
-        u.side === "friendly" &&
-        u.y > state.battle.arenaHeight * 0.58
-    );
-}
-
-function playerIsLosing() {
-  const b = state.battle;
-  if (!b) return false;
-
-  const t = b.towers || {};
-  const playerCrowns = (b.crowns && b.crowns.player) || 0;
-  const enemyCrowns = (b.crowns && b.crowns.enemy) || 0;
-
-  const playerTowerHp =
-    (t["friendly-left"]?.hp || 0) +
-    (t["friendly-right"]?.hp || 0) +
-    (t["friendly-king"]?.hp || 0);
-
-  const enemyTowerHp =
-    (t["enemy-left"]?.hp || 0) +
-    (t["enemy-right"]?.hp || 0) +
-    (t["enemy-king"]?.hp || 0);
-
-  const playerScore = playerCrowns * 10000 + playerTowerHp;
-  const enemyScore = enemyCrowns * 10000 + enemyTowerHp;
-
-  return playerScore < enemyScore;
-}
-
-
-function enemyInCriticalDanger() {
-    if (!state.battle || !state.battle.towers) return false;
-
-    const t = state.battle.towers;
-
-    const left  = t["enemy-left"];
-    const right = t["enemy-right"];
-    const king  = t["enemy-king"];
-
-    if (!left || !right || !king) return false;
-
-    return (
-        left.hp  < left.max * 0.25 ||
-        right.hp < right.max * 0.25 ||
-        king.hp  < king.max * 0.30
-    );
-}
-
-function processEnemyEmotions(enemy) {
-    if (!enemy || !state.battle || !state.battle.towers) return;
-
-    enemy.emoteTimer -= 1;
-    if (enemy.emoteTimer > 0) return;
-
-    if (enemyInCriticalDanger()) {
-        showEmote("😡", "enemy");
-        enemy.emoteTimer = randomBetween(3, 5);
-        return;
-    }
-
-    const playerCrowns = state.battle.crowns.player;
-    const enemyCrowns  = state.battle.crowns.enemy;
-
-    if (playerCrowns > enemyCrowns) {
-        showEmote("👎", "enemy");
-    } else if (enemyCrowns > playerCrowns) {
-        showEmote("😎", "enemy");
-    } else {
-        if (Math.random() < 0.2) {
-            const pool = ["😀","😡","👎","😢","👏"];
-            showEmote(pool[Math.floor(Math.random()*pool.length)], "enemy");
-        }
-    }
-
-    enemy.emoteTimer = randomBetween(3, 6);
 }
 
 function stopAllSound() {
@@ -566,18 +382,14 @@ function startBattle() {
   playSoundtrack('battle');
   state.battle.animationFrame = requestAnimationFrame(battleLoop);
 }
+
 function battleLoop(timestamp) {
   if (!state.battle) return;
-  try {
-    const delta = (timestamp - state.battle.lastTick) / 1000;
-    state.battle.lastTick = timestamp;
-    updateBattle(delta);
-  } catch (err) {
-    console.error("Error in battleLoop:", err);
-  }
+  const delta = (timestamp - state.battle.lastTick) / 1000;
+  state.battle.lastTick = timestamp;
+  updateBattle(delta);
   state.battle.animationFrame = requestAnimationFrame(battleLoop);
 }
-
 
 function updateBattle(delta) {
   updateBattleTimer(delta);
@@ -657,153 +469,53 @@ function showEmote(emote, side) {
 }
 
 function updateEnemyAI(delta) {
-    // Получаем реальные объекты карт из колоды оппонента
-    const deckCards = state.battle.opponent.deckIds.map(id => state.characters[id]);
-    const smartCombos = generateSmartCombos(deckCards);
-    // Сортируем комбинации от простой (2 карты) к большой (3 карты)
-    const sortedCombos = smartCombos.sort((a, b) => a.length - b.length);
+  if (!state.battle) return;
+  state.battle.enemy.nextPlay -= delta;
+  state.battle.enemy.emoteTimer = (state.battle.enemy.emoteTimer || 0) - delta;
+  
+  // NPC emotions
+  if (state.battle.enemy.emoteTimer <= 0) {
+    const friendlyTowersAlive = ['friendly-left', 'friendly-right', 'friendly-king']
+      .filter(key => isTowerAlive(key)).length;
+    const enemyTowersAlive = ['enemy-left', 'enemy-right', 'enemy-king']
+      .filter(key => isTowerAlive(key)).length;
     
-    // Ищем комбо, которое бот может себе позволить (по эликсиру)
-    function findUsableCombo() {
-        for (const combo of sortedCombos) {
-            let totalCost = 0;
-    
-            for (const id of combo) {
-                const card = state.characters[id];
-                totalCost += card.elixir;
-            }
-    
-            // если хватает эликсира – берём
-            if (state.battle.opponent.elixir >= totalCost) {
-                return combo;
-            }
-        }
-        return null;
+    let emote = null;
+    if (friendlyTowersAlive < enemyTowersAlive) {
+      // NPC is winning - teasing
+      const teasingEmotes = ['😎', '👏', '👎'];
+      emote = teasingEmotes[Math.floor(Math.random() * teasingEmotes.length)];
+    } else if (friendlyTowersAlive > enemyTowersAlive) {
+      // NPC is losing - angry or sad
+      const losingEmotes = ['😡', '😢', '👎'];
+      emote = losingEmotes[Math.floor(Math.random() * losingEmotes.length)];
+    } else if (Math.random() < 0.1) {
+      // Random emote sometimes
+      emote = ['😀', '😎', '😡', '👏', '😢', '👎'][Math.floor(Math.random() * 6)];
     }
     
-    const enemy = state.battle.enemy;
-    if (!enemy) return;
-    
-    function underThreat() {
-    return state.battle.units.some(u =>
-        u.side === "player" &&
-        u.x > 150 && u.x < 350  // зона возле его башни, при необходимости увеличи
-    );
+    if (emote) {
+      showEmote(emote, 'enemy');
+      state.battle.enemy.emoteTimer = randomBetween(5, 10);
+    } else {
+      state.battle.enemy.emoteTimer = randomBetween(2, 4);
     }
-    let chosenCombo = null;
-
-    if (!underThreat()) {
-        chosenCombo = findUsableCombo();
+  }
+  
+  if (state.battle.enemy.nextPlay <= 0) {
+    const deckIds = (state.battle.opponent?.deckIds || getAvailableCardIds());
+    let troopPool = deckIds.map((id) => state.characters[id]).filter((card) => card && card.type !== 'spell');
+    if (!troopPool.length) troopPool = getTroopCards();
+    troopPool = troopPool.filter((card) => card.elixir <= state.battle.enemy.elixir);
+    if (troopPool.length) {
+      const card = troopPool[Math.floor(Math.random() * troopPool.length)];
+      state.battle.enemy.elixir -= card.elixir;
+      spawnEnemyUnit(card);
     }
-    if (chosenCombo) {
-    for (let i = 0; i < chosenCombo.length; i++) {
-        const id = chosenCombo[i];
-        spawnOpponentUnit(id, "center"); // или lane
-    }
-
-    // Потратить эликсир
-    let cost = chosenCombo.reduce((sum, id) => sum + state.characters[id].elixir, 0);
-    state.battle.opponent.elixir -= cost;
-
-    return; // важно! Чтобы бот не делал обычную логику в этот тик
-    }
-
-    // Таймеры
-    enemy.nextPlay -= delta;
-    enemy.emoteTimer = (enemy.emoteTimer || 0) - delta;
-
-    const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
-    let troops = deckIds
-        .map(id => state.characters[id])
-        .filter(c => c && c.type !== "spell");
-
-    if (troops.length === 0) return;
-
-    // ==== Классификация юнитов ====
-    const tanks = troops.filter(c => classifyUnit(c) === "tank")
-        .sort((a, b) => b.stats.health - a.stats.health);
-
-    const ranged = troops.filter(c => classifyUnit(c) === "ranged")
-        .sort((a, b) => b.stats.damage - a.stats.damage);
-
-    const cheap = troops.filter(c => c.elixir <= 3)
-        .sort((a, b) => a.elixir - b.elixir);
-
-    // ==== Комбо-фаза (вторая часть пушки) ====
-    if (enemy.comboQueue) {
-        enemy.comboQueue.delay -= delta;
-        if (enemy.comboQueue.delay <= 0) {
-            spawnEnemyUnit(enemy.comboQueue.card);
-            enemy.elixir -= enemy.comboQueue.card.elixir;
-            enemy.comboQueue = null;
-        }
-
-        // эмоции в комбо-режиме тоже проверяются
-        processEnemyEmotions(enemy);
-        return;
-    }
-
-    // ==== Минимальная карта ====
-    const cheapest = cheap.length ? cheap[0].elixir : 99;
-    if (enemy.elixir < cheapest) {
-        processEnemyEmotions(enemy);
-        return;
-    }
-
-    // ==== 1. Экстренная оборона ====
-    if (isUnderAttack()) {
-        if (enemy.nextPlay <= 0 && cheap.length > 0) {
-            const card = cheap[0];
-            if (enemy.elixir >= card.elixir) {
-                spawnEnemyUnit(card);
-                enemy.elixir -= card.elixir;
-                enemy.nextPlay = randomBetween(0.6, 1.3);
-            }
-        }
-        processEnemyEmotions(enemy);
-        return;
-    }
-
-    // ==== 2. Комбо-атака (танк + DPS) ====
-    if (tanks.length > 0 && ranged.length > 0) {
-        const tank = tanks[0];
-        const dps = ranged[0];
-        const comboCost = tank.elixir + dps.elixir;
-
-        if (enemy.elixir >= comboCost && enemy.nextPlay <= 0) {
-
-            // Выставляем танка
-            spawnEnemyUnit(tank);
-            enemy.elixir -= tank.elixir;
-
-            // Планируем DPS чуть позже
-            enemy.comboQueue = {
-                card: dps,
-                delay: randomBetween(0.8, 1.2)
-            };
-
-            enemy.nextPlay = randomBetween(3.5, 5);
-
-            processEnemyEmotions(enemy);
-            return;
-        }
-    }
-
-    // ==== 3. Обычный игровой режим ====
-    if (enemy.nextPlay <= 0) {
-        const playable = troops.filter(c => enemy.elixir >= c.elixir);
-        if (playable.length > 0) {
-            const card = playable[Math.floor(Math.random() * playable.length)];
-            spawnEnemyUnit(card);
-            enemy.elixir -= card.elixir;
-
-            enemy.nextPlay = randomBetween(2, 4);
-        }
-    }
-
-    // ==== эмоции ====
-    processEnemyEmotions(enemy);
+    state.battle.enemy.nextPlay = randomBetween(3, 6);
+  }
 }
+
 function renderBattleHUD() {
   if (!state.battle) return;
   const phase = battlePhases[state.battle.phaseIndex];
@@ -1137,361 +849,223 @@ function findNearestEnemy(unit, range) {
       })[0]?.unit || null
   );
 }
-function evaluateLanes() {
-  const lanes = {
-    left:   { friendlyStrength: 0, enemyStrength: 0 },
-    middle: { friendlyStrength: 0, enemyStrength: 0 },
-    right:  { friendlyStrength: 0, enemyStrength: 0 }
-  };
-
-  const { width } = getArenaDimensions();
-
-  const laneFromUnit = (unit) => {
-    if (unit.lane === 'left' || unit.lane === 'middle' || unit.lane === 'right') {
-      return unit.lane;
-    }
-    const center = getUnitCenter(unit);
-    if (!width) return 'middle';
-    if (center.x < width / 3) return 'left';
-    if (center.x > (2 * width) / 3) return 'right';
-    return 'middle';
-  };
-
-  state.battle.units.forEach((u) => {
-    if (u.done || u.hp <= 0) return;
-    const lane = laneFromUnit(u);
-    const value = (u.attackPower || 0) + (u.hp || 0) * 0.15;
-    if (u.side === 'friendly') {
-      lanes[lane].friendlyStrength += value;
-    } else if (u.side === 'enemy') {
-      lanes[lane].enemyStrength += value;
-    }
-  });
-
-  return lanes;
-}
-
-// Выбор линии: либо дефаемся, либо пушим
-function pickLane(lanes) {
-  let bestDefLane = 'middle';
-  let bestDefScore = 0;
-
-  Object.keys(lanes).forEach((lane) => {
-    const stats = lanes[lane];
-    const threat = stats.friendlyStrength - stats.enemyStrength;
-    if (threat > bestDefScore) {
-      bestDefScore = threat;
-      bestDefLane = lane;
-    }
-  });
-
-  // Если нас реально давят где-то, дефаем там
-  if (bestDefScore > 0) {
-    return { lane: bestDefLane, mode: 'def' };
-  }
-
-  // Иначе выбираем линию, где у enemy преимущество → пуш
-  let bestPushLane = 'middle';
-  let bestPushScore = -Infinity;
-
-  Object.keys(lanes).forEach((lane) => {
-    const stats = lanes[lane];
-    const advantage = stats.enemyStrength - stats.friendlyStrength;
-    if (advantage > bestPushScore) {
-      bestPushScore = advantage;
-      bestPushLane = lane;
-    }
-  });
-
-  return { lane: bestPushLane, mode: 'push' };
-}
-
-// Роли карт для выбора (очень грубо, но лучше рандома)
-const ENEMY_ROLE_MAP = {
-  'giant': 'tank',
-  'knight': 'tank',
-  'hog-rider': 'tank',
-  'baby-dragon': 'aoe',
-  'archers': 'dps',
-  'minions': 'dps',
-  'musketeer': 'dps'
-};
-
-// Выбор лучшей карты для def или push
-function pickEnemyCard(mode) {
-  const enemy = state.battle.enemy;
-  const deckIds = (state.battle.opponent?.deckIds || getAvailableCardIds());
-  let pool = deckIds
-    .map((id) => state.characters[id])
-    .filter((card) => card && card.type !== 'spell'); // враг пока играет только юнитами
-
-  if (!pool.length) pool = getTroopCards();
-
-  // Элексир ограничение
-  pool = pool.filter((card) => card.elixir <= enemy.elixir);
-
-  // Кулдауны врага
-  enemy.cooldowns = enemy.cooldowns || {};
-  pool = pool.filter((card) => (enemy.cooldowns[card.id] || 0) <= 0);
-
-  if (!pool.length) return null;
-
-  const scoreCard = (card) => {
-    const role = ENEMY_ROLE_MAP[card.id] || 'dps';
-    const hp   = card.health || card.stats?.health || 0;
-    const dmg  = card.attackPower || card.stats?.damage || 0;
-    const rng  = card.attackRange || card.stats?.range || 1;
-
-    if (mode === 'def') {
-      let s = dmg * 1.2 + rng * 8;
-      if (role === 'aoe') s += 40;
-      if (role === 'dps') s += 20;
-      if (role === 'tank') s += 5;
-      return s;
-    } else {
-      // push
-      let s = hp * 0.25 + dmg;
-      if (role === 'tank') s += 40;
-      if (role === 'dps') s += 10;
-      return s;
-    }
-  };
-
-  return pool.reduce((best, card) => {
-    if (!best) return card;
-    return scoreCard(card) > scoreCard(best) ? card : best;
-  }, null);
-}
-
-// Спавн юнита врага в конкретной линии
-function spawnEnemyUnitAtLane(card, lane) {
-  const safeLane = lane || ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
-  const x = getLaneAnchorX(safeLane);
-  const y = UNIT_RADIUS + 10;
-  spawnUnit(card, 'enemy', { x, y, lane: safeLane });
-}
-
-function enemyBehindClose(unit, enemy) {
-  if (!enemy) return false;
-
-  const my = getUnitCenter(unit);
-  const en = getUnitCenter(enemy);
-
-  const dx = Math.abs(en.x - my.x);
-  const dy = en.y - my.y;
-  const dist = Math.hypot(dx, dy);
-
-  // Friendly marches UP → enemy behind if dy > 0
-  if (unit.side === "friendly" && dy > 0 && dist < 40) return true;
-
-  // Enemy marches DOWN → enemy behind if dy < 0
-  if (unit.side === "enemy" && dy < 0 && dist < 40) return true;
-
-  return false;
-}
-function isGoingBackwards(unit, nx, ny) {
-    const dy = ny - unit.y;
-
-    // если горизонтальный шаг больше вертикального, это диагональ — НЕ назад
-    const horizontal = Math.abs(nx - unit.x);
-    const vertical = Math.abs(dy);
-    if (horizontal > vertical) return false;
-
-    if (unit.side === "friendly") return dy > 4;
-    if (unit.side === "enemy") return dy < -4;
-
-    return false;
-}
-
 
 function updateUnits(delta) {
-    const isOvertime = state.battle && state.battle.globalTime <= 30;
-    const speedMultiplier = isOvertime ? 1.2 : 1.0;
+  // Apply overtime speed boost
+  const isOvertime = state.battle && state.battle.globalTime <= 30;
+  const speedMultiplier = isOvertime ? 1.2 : 1.0;
+  
+  state.battle.units = state.battle.units.filter((unit) => {
+    if (unit.done || unit.hp <= 0) {
+      unit.element.remove();
+      return false;
+    }
+    
+    if (unit.attackCooldown > 0) unit.attackCooldown -= delta;
+    
+    // Apply speed multiplier
+    const currentSpeed = unit.speed * speedMultiplier;
+    
+    // Check for nearby enemies first - prioritize enemies in our territory
+    const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5); // Slightly larger detection range
+    
+    if (nearbyEnemy && (unit.mode !== 'combat' || unit.targetUnit !== nearbyEnemy)) {
+      unit.mode = 'combat';
+      unit.targetUnit = nearbyEnemy;
+    }
+    
+    if (unit.mode === 'combat') {
+      // Check if enemy is still in range
+      if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
+        unit.targetUnit = findNearestEnemy(unit, unit.attackRange);
+        if (!unit.targetUnit) {
+          const safeTarget = resolveTargetTower(unit.side, unit.lane);
+          const { riverY } = getArenaDimensions();
+          const targetPos = getTargetPosition(unit.side, safeTarget);
 
-    state.battle.units = state.battle.units.filter((unit) => {
-        if (unit.done || unit.hp <= 0) {
-            unit.element.remove();
-            return false;
+          if (unit.side === 'friendly' && targetPos.y < riverY) {
+            targetPos.y = riverY - 40;
+          }
+          if (unit.side === 'enemy' && targetPos.y > riverY) {
+            targetPos.y = riverY + 40;
+          }
+
+          unit.targetKey = safeTarget;
+          unit.targetX = targetPos.x;
+          unit.targetY = targetPos.y;
+
+          unit.mode = 'move';
+          unit.path = findPathToTarget(unit);
+          unit.currentPathIndex = 0;
+          return true;
         }
-
-        if (unit.attackCooldown > 0) unit.attackCooldown -= delta;
-        const currentSpeed = unit.speed * speedMultiplier;
-        let moved = false;
-
-        // 1) Ищем ближайшего врага
-        const nearbyEnemy = findNearestEnemy(unit, unit.attackRange * 1.5);
-        if (nearbyEnemy && (unit.mode !== "combat" || unit.targetUnit !== nearbyEnemy)) {
-            unit.mode = "combat";
-            unit.targetUnit = nearbyEnemy;
+      }
+      
+      const myCenter = getUnitCenter(unit);
+      const enemyCenter = getUnitCenter(unit.targetUnit);
+      const enemyDist = Math.hypot(myCenter.x - enemyCenter.x, myCenter.y - enemyCenter.y);
+      
+      if (enemyDist > unit.attackRange) {
+        const dx = enemyCenter.x - myCenter.x;
+        const dy = enemyCenter.y - myCenter.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 0) {
+          const nextX = unit.x + (dx / dist) * currentSpeed * delta;
+          const nextY = unit.y + (dy / dist) * currentSpeed * delta;
+          const clamped = clampPointToArena(nextX, nextY);
+          unit.x = clamped.x;
+          unit.y = clamped.y;
         }
-
-        // =====================================================
-        //                     COMBAT MODE
-        // =====================================================
-        if (unit.mode === "combat") {
-
-            // Противник умер → идём к башне
-            if (!unit.targetUnit || unit.targetUnit.done || unit.targetUnit.hp <= 0) {
-                const safeTarget = resolveTargetTower(unit.side, unit.lane);
-                const pos = getTargetPosition(unit.side, safeTarget);
-
-                unit.targetKey = safeTarget;
-                unit.targetX = pos.x;
-                unit.targetY = pos.y;
-
-                unit.mode = "move";
-                unit.path = findPathToTarget(unit);
-                unit.currentPathIndex = 0;
-
-            } else {
-                const myC = getUnitCenter(unit);
-                const enemyC = getUnitCenter(unit.targetUnit);
-                const dx = enemyC.x - myC.x;
-                const dy = enemyC.y - myC.y;
-                const dist = Math.hypot(dx, dy);
-
-                // шаг назад ТОЛЬКО если враг сзади
-                if (enemyBehindClose(unit)) {
-                    const back = currentSpeed * 0.5;
-                    const nx = unit.x - (dx / dist) * back * delta;
-                    const ny = unit.y - (dy / dist) * back * delta;
-                    const cl = clampPointToArena(nx, ny);
-
-                    if (!isGoingBackwards(unit, cl.x, cl.y)) {
-                        unit.x = smoothStep(unit.x, cl.x, 0.7);
-                        unit.y = smoothStep(unit.y, cl.y, 0.7);
-                    }
-                    moved = true;
+      } else {
+        // Attack enemy
+        if (unit.attackCooldown <= 0) {
+          if (unit.isRanged) {
+            const start = getUnitCenter(unit);
+            const end = getUnitCenter(unit.targetUnit);
+            spawnProjectile(start, end, () => {
+              if (unit.targetUnit && !unit.targetUnit.done) {
+                unit.targetUnit.hp -= unit.attackPower;
+                if (unit.targetUnit.hp <= 0) {
+                  unit.targetUnit.done = true;
                 }
-
-                // движение вперёд (диагональ)
-                else if (dist > unit.attackRange) {
-                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
-                    const cl = clampPointToArena(nx, ny);
-
-                    if (!isGoingBackwards(unit, cl.x, cl.y)) {
-                        unit.x = smoothStep(unit.x, cl.x, 0.7);
-                        unit.y = smoothStep(unit.y, cl.y, 0.7);
-                    }
-                    moved = true;
-                }
-
-                // атака
-                else {
-                    if (unit.attackCooldown <= 0) {
-                        if (unit.isRanged) {
-                            spawnProjectile(myC, enemyC, () => {
-                                if (unit.targetUnit && !unit.targetUnit.done) {
-                                    unit.targetUnit.hp -= unit.attackPower;
-                                    if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
-                                }
-                            });
-                        } else {
-                            unit.targetUnit.hp -= unit.attackPower;
-                            if (unit.targetUnit.hp <= 0) unit.targetUnit.done = true;
-                        }
-                        unit.attackCooldown = unit.attackSpeed;
-                    }
-                }
+              }
+            });
+            unit.element.classList.add('attacking');
+            setTimeout(() => unit.element.classList.remove('attacking'), 200);
+          } else {
+            // Melee attack
+            unit.targetUnit.hp -= unit.attackPower;
+            unit.element.classList.add('attacking');
+            setTimeout(() => unit.element.classList.remove('attacking'), 200);
+            if (unit.targetUnit.hp <= 0) {
+              unit.targetUnit.done = true;
             }
+          }
+          unit.attackCooldown = unit.attackSpeed;
         }
-
-        // =====================================================
-        //                     MOVE MODE
-        // =====================================================
-        if (unit.mode === "move") {
-
-            if (!unit.path) {
-                unit.path = findPathToTarget(unit);
-                unit.currentPathIndex = 0;
-            }
-
-            if (unit.path.length > 0) {
-                const target = unit.path[unit.currentPathIndex];
-                const dx = target.x - unit.x;
-                const dy = target.y - unit.y;
-                const dist = Math.hypot(dx, dy);
-
-                if (dist < 5) {
-                    unit.currentPathIndex++;
-                    if (unit.currentPathIndex >= unit.path.length) {
-                        unit.mode = "attack";
-                    }
-                } else {
-                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
-                    const cl = clampPointToArena(nx, ny);
-
-                    if (!isGoingBackwards(unit, cl.x, cl.y)) {
-                        unit.x = smoothStep(unit.x, cl.x, 0.7);
-                        unit.y = smoothStep(unit.y, cl.y, 0.7);
-                    }
-                    moved = true;
-                }
-            } else {
-                unit.mode = "attack";
-            }
-        }
-
-        // =====================================================
-        //                   ATTACK TOWER
-        // =====================================================
-        if (unit.mode === "attack") {
-
-            if (!isTowerAlive(unit.targetKey)) {
-                const nxt = resolveTargetTower(unit.side, unit.lane);
-                if (!isTowerAlive(nxt)) {
-                    unit.done = true;
-                    unit.element.remove();
-                    return false;
-                }
-
-                const pos = getTargetPosition(unit.side, nxt);
-                unit.targetKey = nxt;
-                unit.targetX = pos.x;
-                unit.targetY = pos.y;
-
-                unit.mode = "move";
-                unit.path = findPathToTarget(unit);
-                unit.currentPathIndex = 0;
-
-            } else {
-                const towerPos = state.battle.towerPositions[unit.targetKey];
-                const myC = getUnitCenter(unit);
-
-                const dx = towerPos.x - myC.x;
-                const dy = towerPos.y - myC.y;
-                const dist = Math.hypot(dx, dy);
-
-                if (dist > unit.attackRange) {
-                    const nx = unit.x + (dx / dist) * currentSpeed * delta;
-                    const ny = unit.y + (dy / dist) * currentSpeed * delta;
-                    const cl = clampPointToArena(nx, ny);
-
-                    if (!isGoingBackwards(unit, cl.x, cl.y)) {
-                        unit.x = smoothStep(unit.x, cl.x, 0.7);
-                        unit.y = smoothStep(unit.y, cl.y, 0.7);
-                    }
-                    moved = true;
-
-                } else {
-                    if (unit.attackCooldown <= 0) {
-                        damageTower(unit.targetKey, unit.attackPower, unit.side);
-                        unit.attackCooldown = unit.attackSpeed;
-                    }
-                }
-            }
-        }
-
-        // =====================================================
-        //               ОБНОВЛЕНИЕ ВИЗУАЛА ЮНИТА
-        // =====================================================
-        unit.element.style.left = `${unit.x}px`;
-        unit.element.style.top = `${unit.y}px`;
-
+      }
+    } else if (unit.mode === 'move') {
+      // Initialize path if needed
+      if (!unit.path) {
+        unit.path = findPathToTarget(unit);
+        unit.currentPathIndex = 0;
+      }
+      
+      if (unit.path.length === 0) {
+        unit.mode = 'attack';
         return true;
-    });
+      }
+      
+      const currentTarget = unit.path[unit.currentPathIndex];
+      const dx = currentTarget.x - unit.x;
+      const dy = currentTarget.y - unit.y;
+      const dist = Math.hypot(dx, dy);
+      
+      if (dist < 5) {
+        // Reached waypoint
+        unit.currentPathIndex++;
+        if (unit.currentPathIndex >= unit.path.length) {
+          unit.mode = 'attack';
+          return true;
+        }
+      } else {
+        const moveX = (dx / dist) * currentSpeed * delta;
+        const moveY = (dy / dist) * currentSpeed * delta;
+        const newX = unit.x + moveX;
+        const newY = unit.y + moveY;
+
+        // CR rule: units must not walk backwards, but allow small Y wiggle (±4px)
+        const tol = 4;
+        const goingBackwards =
+          (unit.side === 'friendly' && newY > unit.y + tol) ||
+          (unit.side === 'enemy' && newY < unit.y - tol);
+
+        if (goingBackwards) {
+          unit.path = findPathToTarget(unit);
+          unit.currentPathIndex = 0;
+          return true;
+        }
+
+        const willBeInRiver = isInRiver(newX, newY);
+        const willBeOnBridge = isOnBridge(newX, newY);
+        const currentlyOnBridge = isOnBridge(unit.x, unit.y);
+        
+        if (willBeInRiver && !(willBeOnBridge || currentlyOnBridge)) {
+          unit.path = findPathToTarget(unit);
+          unit.currentPathIndex = 0;
+          return true;
+        }
+        
+        const clamped = clampPointToArena(newX, newY);
+        unit.x = clamped.x;
+        unit.y = clamped.y;
+      }
+    } else if (unit.mode === 'attack') {
+      // Attack tower
+      if (!isTowerAlive(unit.targetKey)) {
+        const newTarget = resolveTargetTower(unit.side, unit.lane);
+        if (!isTowerAlive(newTarget)) {
+          unit.done = true;
+          unit.element.remove();
+          return false;
+        }
+        unit.targetKey = newTarget;
+        const newPos = getTargetPosition(unit.side, unit.targetKey);
+        unit.targetX = newPos.x;
+        unit.targetY = newPos.y;
+        unit.path = findPathToTarget(unit);
+        unit.currentPathIndex = 0;
+        unit.mode = 'move';
+        return true;
+      }
+      
+      const towerPos = state.battle.towerPositions[unit.targetKey];
+      if (!towerPos) {
+        unit.mode = 'move';
+        return true;
+      }
+      
+      const unitCenter = getUnitCenter(unit);
+      const dist = Math.hypot(unitCenter.x - towerPos.x, unitCenter.y - towerPos.y);
+      
+      if (dist > unit.attackRange) {
+        const dx = towerPos.x - unitCenter.x;
+        const dy = towerPos.y - unitCenter.y;
+        const moveDist = Math.hypot(dx, dy);
+        if (moveDist > 0) {
+          const nextX = unit.x + (dx / moveDist) * currentSpeed * delta;
+          const nextY = unit.y + (dy / moveDist) * currentSpeed * delta;
+          const clamped = clampPointToArena(nextX, nextY);
+          unit.x = clamped.x;
+          unit.y = clamped.y;
+        }
+      } else {
+        // Attack tower
+        if (unit.attackCooldown <= 0) {
+          if (unit.isRanged) {
+            spawnProjectile(
+              unitCenter,
+              { x: towerPos.x, y: towerPos.y },
+              () => damageTower(unit.targetKey, unit.attackPower, unit.side)
+            );
+            unit.element.classList.add('attacking');
+            setTimeout(() => unit.element.classList.remove('attacking'), 200);
+          } else {
+            damageTower(unit.targetKey, unit.attackPower, unit.side);
+            unit.element.classList.add('attacking');
+            setTimeout(() => unit.element.classList.remove('attacking'), 200);
+          }
+          unit.attackCooldown = unit.attackSpeed;
+        }
+      }
+    }
+    
+    // Update visual position
+    unit.element.style.left = `${unit.x}px`;
+    unit.element.style.top = `${unit.y}px`;
+    
+    return true;
+  });
 }
 
 function castSpell(card, position) {
@@ -1881,20 +1455,9 @@ function bindEvents() {
 
 function tickOneSecond() {
   if (!state.battle) return;
-
-  // Player cooldowns
   Object.keys(state.battle.player.cooldowns).forEach((cardId) => {
     state.battle.player.cooldowns[cardId] = Math.max(0, state.battle.player.cooldowns[cardId] - 1);
   });
-
-  // Enemy cooldowns
-  if (!state.battle.enemy.cooldowns) {
-    state.battle.enemy.cooldowns = {};
-  } else {
-    Object.keys(state.battle.enemy.cooldowns).forEach((cardId) => {
-      state.battle.enemy.cooldowns[cardId] = Math.max(0, state.battle.enemy.cooldowns[cardId] - 1);
-    });
-  }
   renderBattleHand();
 }
 

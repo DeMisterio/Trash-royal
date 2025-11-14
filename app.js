@@ -203,6 +203,11 @@ const elements = {
   requestCooldown: document.getElementById('requestCooldown'),
   eventsList: document.getElementById('eventsList'),
   characterData: document.getElementById('characterData'),
+  updatePanel: document.getElementById('updatePanel'),
+  updateTitle: document.getElementById('updateTitle'),
+  updateDate: document.getElementById('updateDate'),
+  updateSummary: document.getElementById('updateSummary'),
+  updateHighlights: document.getElementById('updateHighlights'),
   battleModal: document.getElementById('battleModal'),
   battleTimer: document.getElementById('battleTimer'),
   timerValue: document.getElementById('timerValue'),
@@ -561,6 +566,30 @@ function renderClan() {
     }
     elements.clanChat.appendChild(tpl);
   });
+}
+
+async function loadStatusPanel() {
+  if (!elements.updatePanel) return;
+  try {
+    const resp = await fetch(`status.json?cacheBust=${Date.now()}`);
+    if (!resp.ok) throw new Error('Missing status file');
+    const data = await resp.json();
+    elements.updateTitle.textContent = data.title || 'Latest Update';
+    elements.updateDate.textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    elements.updateSummary.textContent = data.summary || data.paragraph || 'Fresh changes just landed.';
+    const list = Array.isArray(data.highlights) ? data.highlights : [];
+    if (list.length) {
+      elements.updateHighlights.innerHTML = list.map((item) => `<li>${item}</li>`).join('');
+    } else {
+      elements.updateHighlights.innerHTML = '';
+    }
+  } catch (err) {
+    elements.updateTitle.textContent = 'Update Notes';
+    elements.updateDate.textContent = '';
+    elements.updateSummary.textContent = 'Unable to load update information right now.';
+    if (elements.updateHighlights) elements.updateHighlights.innerHTML = '';
+    console.warn('Status panel load failed:', err.message);
+  }
 }
 
 function renderEvents() {
@@ -1413,6 +1442,7 @@ async function init() {
   state.dataLoaded = true;
   renderProfile();
   renderChests();
+  await loadStatusPanel();
   renderDeck();
   renderCollection();
   renderShop();

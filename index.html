@@ -144,6 +144,34 @@
             color: var(--text-muted);
         }
 
+        .update-panel .update-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.75rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .update-panel strong {
+            font-size: 1.05rem;
+        }
+
+        .update-panel .update-date {
+            font-size: 0.85rem;
+            color: var(--accent-gold);
+        }
+
+        .update-list {
+            margin: 0.5rem 0 0;
+            padding-left: 1.2rem;
+            color: var(--text-light);
+        }
+
+        .update-list li {
+            margin-bottom: 0.35rem;
+            font-size: 0.9rem;
+        }
+
         .arena-hero {
             background: var(--arena-gradient);
             min-height: 200px;
@@ -1230,6 +1258,16 @@
                 <div class="panel">
                     <h2>Chest Slots</h2>
                     <div class="chest-grid" id="chestGrid"></div>
+                </div>
+
+                <div class="panel update-panel" id="updatePanel">
+                    <h2>Update Notes</h2>
+                    <div class="update-header">
+                        <strong id="updateTitle">Loading update…</strong>
+                        <span class="update-date" id="updateDate"></span>
+                    </div>
+                    <p class="muted" id="updateSummary">Fetching the latest patch highlights.</p>
+                    <ul class="update-list" id="updateHighlights"></ul>
                 </div>
 
                 <div class="panel">
