@@ -33,6 +33,30 @@ async function loadCharacterStats(character) {
     }
 }
 
+async function loadAllCharacters() {
+    const finalCharacters = {};
+
+    for (const char of builtInCharacters) {
+        const stats = await loadCharacterStats(char);
+
+        finalCharacters[char.id] = {
+            ...char,
+            stats: stats || {   // дефолтные статы если JSON не найден
+                health: 1500,
+                damage: 200,
+                attackSpeed: 1.2,
+                range: 1,
+                speed: 60,
+                targeting: "ground",
+                spawnCount: 1,
+                splashRadius: 0
+            }
+        };
+    }
+
+    return finalCharacters;
+}
+
 const fallbackEmoji = builtInCharacters.reduce((acc, card) => {
   acc[card.id] = card.emoji;
   return acc;
