@@ -1075,8 +1075,8 @@ function updateUnits(delta) {
                     const ny = unit.y - (dy / dist) * back * delta;
                     const cl = clampPointToArena(nx, ny);
 
-                    unit.x = smoothStep(unit.x, cl.x, 0.25);
-                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    unit.x = smoothStep(unit.x, cl.x, 0.7);
+                    unit.y = smoothStep(unit.y, cl.y, 0.7);
                     moved = true;
                 }
                 // === движение вперёд по диагонали ===
@@ -1085,8 +1085,8 @@ function updateUnits(delta) {
                     const ny = unit.y + (dy / dist) * currentSpeed * delta;
                     const cl = clampPointToArena(nx, ny);
 
-                    unit.x = smoothStep(unit.x, cl.x, 0.25);
-                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    unit.x = smoothStep(unit.x, cl.x, 0.7);
+                    unit.y = smoothStep(unit.y, cl.y, 0.7);
                     moved = true;
                 }
                 // === атака ===
@@ -1139,8 +1139,8 @@ function updateUnits(delta) {
                     const ny = unit.y + (dy / dist) * currentSpeed * delta;
                     const cl = clampPointToArena(nx, ny);
 
-                    unit.x = smoothStep(unit.x, cl.x, 0.25);
-                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    unit.x = smoothStep(unit.x, cl.x, 0.7);
+                    unit.y = smoothStep(unit.y, cl.y, 0.7);
                     moved = true;
                 }
             } else {
@@ -1181,8 +1181,8 @@ function updateUnits(delta) {
                     const ny = unit.y + (dy / dist) * currentSpeed * delta;
                     const cl = clampPointToArena(nx, ny);
 
-                    unit.x = smoothStep(unit.x, cl.x, 0.25);
-                    unit.y = smoothStep(unit.y, cl.y, 0.25);
+                    unit.x = smoothStep(unit.x, cl.x, 0.7);
+                    unit.y = smoothStep(unit.y, cl.y, 0.7);
                     moved = true;
                 } else {
                     if (unit.attackCooldown <= 0) {
