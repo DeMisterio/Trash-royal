@@ -1,0 +1,19 @@
+{
+  "id": "Aoaoa",
+  "name": "Aoaoa",
+  "type": "troop",
+  "rarity": "common",
+  "elixir": 1,
+  "description": "Auto-generated stats for Aoaoa. Adjust to balance.",
+  "sprite": "Characters/Aoaoa.png",
+  "stats": {
+    "health": 3220,
+    "damage": 288,
+    "attackSpeed": 0.77,
+    "range": 0.8,
+    "speed": 83,
+    "targeting": "buildings",
+    "spawnCount": 3,
+    "splashRadius": 0
+  }
+}

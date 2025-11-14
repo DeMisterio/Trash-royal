@@ -1,0 +1,19 @@
+{
+  "id": "BodyCamOff",
+  "name": "BodyCamOff",
+  "type": "troop",
+  "rarity": "legendary",
+  "elixir": 5,
+  "description": "Auto-generated stats for BodyCamOff. Adjust to balance.",
+  "sprite": "Characters/BodyCamOff.png",
+  "stats": {
+    "health": 2833,
+    "damage": 412,
+    "attackSpeed": 1.42,
+    "range": 4.1,
+    "speed": 55,
+    "targeting": "ground",
+    "spawnCount": 1,
+    "splashRadius": 2.2
+  }
+}

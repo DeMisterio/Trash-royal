@@ -1,7 +1,9 @@
 {
-  "version": 1763067937017,
+  "version": 1763079581637,
   "characters": [
     "67",
+    "Aoaoa",
+    "BodyCamOff",
     "Epstein",
     "Sins",
     "Speed",
@@ -21,6 +23,10 @@
       "ext": ".png"
     },
     {
+      "base": "Aoaoa",
+      "ext": ".png"
+    },
+    {
       "base": "archers",
       "ext": ".png"
     },
@@ -29,8 +35,8 @@
       "ext": ".png"
     },
     {
-      "base": "DDestroyer",
-      "ext": ".jpg"
+      "base": "BodyCamOff",
+      "ext": ".png"
     },
     {
       "base": "diddy",
