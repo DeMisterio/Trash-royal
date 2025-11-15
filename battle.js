@@ -620,6 +620,22 @@ function updateEnemyAI(delta) {
 
   const smartCombos = generateSmartCombos(cards);
 
+  if (smartCombos.length < 3) {
+    for (let i = 0; i < 5; i++) {
+      const a = cards[Math.floor(Math.random() * cards.length)];
+      const b = cards[Math.floor(Math.random() * cards.length)];
+      if (a && b && a.id !== b.id) {
+        smartCombos.push([a.id, b.id]);
+        if (Math.random() < 0.3) {
+          const c = cards[Math.floor(Math.random() * cards.length)];
+          if (c && c.id !== a.id && c.id !== b.id) {
+            smartCombos.push([a.id, b.id, c.id]);
+          }
+        }
+      }
+    }
+  }
+
   const wantsCombo = Math.random() < 0.40; // 40% chance
 
   let chosenCombo = null;
@@ -636,7 +652,7 @@ function updateEnemyAI(delta) {
       const comboCost = chosenCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
 
       if (elixir < comboCost) {
-          state.battle.enemy.nextPlay = randomBetween(2.5, 4.0);
+          state.battle.enemy.nextPlay = randomBetween(3.0, 5.0);
           return;
       }
 
@@ -723,7 +739,21 @@ function updateEnemyAI(delta) {
   }
 
   // 4. Default random valid troop
-  const troopPool = cards.filter(c => c.elixir <= elixir && !state.battle.enemy.cooldowns[c.id]);
+  let troopPool = cards.filter(c => c.elixir <= elixir);
+
+  troopPool = troopPool.filter(c => {
+    if (!state.battle.enemy.cooldowns[c.id]) return true;
+    return Math.random() < 0.35;
+  });
+
+  if (troopPool.length < 3) {
+    const r = cards
+      .filter(c => c.elixir <= elixir)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 4);
+    troopPool = troopPool.concat(r);
+  }
+
   if (troopPool.length) {
     const pick = troopPool[Math.floor(Math.random()*troopPool.length)];
     state.battle.enemy.elixir -= pick.elixir;
