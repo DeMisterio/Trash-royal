@@ -221,11 +221,25 @@ const getAvailableCardIds = () => {
 const pickOpponentProfile = () => {
   const namesPool = NPC_NAMES.length ? NPC_NAMES : ['Arena NPC'];
   const name = namesPool[Math.floor(Math.random() * namesPool.length)];
-  const available = getAvailableCardIds();
+
+  // Full pool of all characters in the game
+  const all = Object.keys(state.characters || {});
+
+  // Remove player's deck from pool completely
   const playerDeck = state.deck || [];
-  const filtered = available.filter((id) => !playerDeck.includes(id));
-  const pool = filtered.length >= 8 ? filtered : [...filtered, ...playerDeck];
-  const deckIds = shuffleArray([...new Set(pool)]).slice(0, Math.min(8, pool.length));
+  const pool = all.filter(id => !playerDeck.includes(id));
+
+  // Always guarantee randomization every match
+  const shuffled = shuffleArray(pool);
+
+  // Ensure at least 8 cards; if fewer exist, refill with remaining cards
+  let deckIds = shuffled.slice(0, 8);
+  if (deckIds.length < 8) {
+    const missing = 8 - deckIds.length;
+    const refill = shuffleArray(all).filter(id => !deckIds.includes(id)).slice(0, missing);
+    deckIds = [...deckIds, ...refill];
+  }
+
   return { name, deckIds };
 };
 const formatTime = (seconds) => {
