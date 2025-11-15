@@ -566,6 +566,15 @@ function showEmote(emote, side) {
   }, 2000);
 }
 
+function enemyUnderPressure() {
+    return state.battle.units.some(u =>
+        u.side === "friendly" &&
+        !u.done &&
+        u.hp > 0 &&
+        u.y < state.battle.arenaHeight * 0.40
+    );
+}
+
 function updateEnemyAI(delta) {
   if (!state.battle) return;
 
@@ -644,7 +653,7 @@ function updateEnemyAI(delta) {
     }
   }
 
-  const wantsCombo = !underThreat && Math.random() < 0.70;
+  const wantsCombo = !underThreat && !enemyUnderPressure() && Math.random() < 0.35;
 
   let chosenCombo = null;
   if (!underThreat && wantsCombo && smartCombos.length) {
@@ -663,7 +672,7 @@ function updateEnemyAI(delta) {
           const card = state.characters[id];
           state.battle.enemy.elixir -= card.elixir;
           spawnEnemyUnit(card);
-          state.battle.enemy.cooldowns[card.id] = 4.0;
+          state.battle.enemy.cooldowns[card.id] = enemyUnderPressure() ? 1.0 : 3.0;
           state.battle.enemy.lastCard = id;
       }
       state.battle.enemy.lastCombo = chosenCombo;
@@ -710,7 +719,7 @@ function updateEnemyAI(delta) {
   state.battle.enemy.elixir -= pick.elixir;
   state.battle.enemy.lastCard = pick.id;
   spawnEnemyUnit(pick);
-  state.battle.enemy.cooldowns[pick.id] = 3.5;
+  state.battle.enemy.cooldowns[pick.id] = enemyUnderPressure() ? 1.0 : 3.0;
   state.battle.enemy.nextPlay = randomBetween(3, 6);
 }
 
