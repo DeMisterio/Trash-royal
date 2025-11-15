@@ -6,6 +6,10 @@
     "Smarter Enemy AI: The bot now forms role-based combos, waits for elixir, avoids repeating cards, reacts to danger, and switches playstyle instead of spamming one troop.",
     "Battle Logic Stability Fixes",
     "Character Loading + Deck Isolation: Enemy decks are now independent from the player’s.",
-    "NPC has been buffed up to 40%"
+    "NPC has been buffed up to 40%",
+    "Advanced Combo Logic: AI now prepares full combos, creates partial pushes under 6 elixir, and times heavy cards more intelligently.",
+    "Improved Combat Detection: AI now detects real fights based on proximity of enemy and friendly units, not river position.",
+    "Anti-Spam System Upgrade: Enemy tracks last 4 unique cards to prevent repeating the same troop.",
+    "Movement & Behaviour Fixes: Removed backwards-movement rule and reduced unit freezing/bridge looping."
   ]
 }
