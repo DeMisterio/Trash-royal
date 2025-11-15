@@ -603,20 +603,28 @@ function updateEnemyAI(delta) {
           return t && t.hp < t.max * 0.30;
       });
 
-      const manyEnemiesNear = state.battle.units.some(u =>
+      const manyEnemiesNear = state.battle.units.filter(u =>
           u.side === 'friendly' &&
           !u.done &&
           u.hp > 0 &&
           u.y < state.battle.towerPositions['enemy-king'].y + 120
-      );
+      ).length >= 2;
 
       return low || manyEnemiesNear;
   }
 
   const underThreat = enemyUnderThreat();
   const elixir = state.battle.enemy.elixir;
+  if (elixir < 6) {
+    state.battle.enemy.nextPlay = randomBetween(1.5, 2.5);
+    return;
+  }
   const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
   const cards = deckIds.map(id => state.characters[id]).filter(c=>c);
+  const availableCards = cards.filter(c => {
+    const cd = state.battle.enemy.cooldowns[c.id];
+    return !cd || cd <= 0;
+  });
 
   const smartCombos = generateSmartCombos(cards);
 
@@ -636,133 +644,74 @@ function updateEnemyAI(delta) {
     }
   }
 
-  const wantsCombo = Math.random() < 0.40; // 40% chance
+  const wantsCombo = !underThreat && Math.random() < 0.70;
 
   let chosenCombo = null;
-
   if (!underThreat && wantsCombo && smartCombos.length) {
-
       const sorted = smartCombos.sort((a,b) => {
           const costA = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
           const costB = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
           return costB - costA;
       });
-
       chosenCombo = sorted[0];
       const comboCost = chosenCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-
       if (elixir < comboCost) {
           state.battle.enemy.nextPlay = randomBetween(3.0, 5.0);
           return;
       }
-
       for (const id of chosenCombo) {
           const card = state.characters[id];
           state.battle.enemy.elixir -= card.elixir;
           spawnEnemyUnit(card);
-          state.battle.enemy.cooldowns[card.id] = 2.5;
+          state.battle.enemy.cooldowns[card.id] = 4.0;
           state.battle.enemy.lastCard = id;
       }
-
       state.battle.enemy.lastCombo = chosenCombo;
       state.battle.enemy.nextPlay = randomBetween(3, 6);
       return;
   }
 
-  // Legacy fallback AI:
-  function classify(c) {
-    if (c.type === 'spell') return 'spell';
-    if (c.stats.health >= 1500) return 'tank';
-    if (c.stats.range >= 4) return 'ranged';
-    return 'melee';
+  // --- MODERN fallback logic: use availableCards, avoid repeats, diversify roles ---
+  state.battle.enemy.nextPlay -= delta;
+  state.battle.enemy.recentCards = state.battle.enemy.recentCards || [];
+
+  let troopPool = availableCards.filter(c => c.elixir <= elixir);
+  if (!troopPool.length) {
+    // fallback: use all cards with elixir <= current
+    troopPool = cards.filter(c => c.elixir <= elixir);
   }
-
-  function pickTank(pool) {
-    return pool.find(c=>classify(c)==='tank' && c.elixir<=elixir);
-  }
-  function pickSupport(pool){
-    return pool.find(c=>classify(c)==='ranged' && c.elixir<=elixir);
-  }
-  function cheapSpell(pool){
-    return pool.find(c=>c.type==='spell' && c.elixir<=elixir);
-  }
-
-  const tankPool = cards.filter(c=>classify(c)==='tank');
-  const rangedPool = cards.filter(c=>classify(c)==='ranged');
-  const spellPool = cards.filter(c=>c.type==='spell');
-
-  const isWinning = state.battle.crowns.enemy > state.battle.crowns.player;
-  const playerLow = ['friendly-left','friendly-right','friendly-king'].some(k=>{
-    const t = state.battle.towers[k];
-    return t && t.hp < t.max*0.25;
-  });
-
-  // COMBO RULES:
-
-  // 1. SPELL punish if player is low HP tower
-  if (playerLow) {
-    const finisher = cheapSpell(spellPool);
-    if (finisher) {
-      state.battle.enemy.elixir -= finisher.elixir;
-      spawnEnemyUnit(finisher);
-      state.battle.enemy.cooldowns[finisher.id] = 2.5;
-      state.battle.enemy.nextPlay = randomBetween(2,4);
-      return;
-    }
-  }
-
-  // 2. TANK + support push
-  let tank = pickTank(tankPool);
-  let support = pickSupport(rangedPool);
-
-  if (tank && support && tank.elixir + support.elixir <= elixir) {
-    state.battle.enemy.elixir -= tank.elixir;
-    spawnEnemyUnit(tank);
-    state.battle.enemy.cooldowns[tank.id] = 2.5;
-    state.battle.enemy.elixir -= support.elixir;
-    spawnEnemyUnit(support);
-    state.battle.enemy.cooldowns[support.id] = 2.5;
-    state.battle.enemy.nextPlay = randomBetween(4,7);
+  if (!troopPool.length) {
+    // nothing to play
+    state.battle.enemy.nextPlay = randomBetween(2, 4);
     return;
   }
 
-  // 3. If losing - spam cheapest troops
-  if (!isWinning) {
-    const cheap = cards.filter(c=>c.elixir<=elixir).sort((a,b)=>a.elixir-b.elixir)[0];
-    if (cheap) {
-      state.battle.enemy.elixir -= cheap.elixir;
-      spawnEnemyUnit(cheap);
-      state.battle.enemy.cooldowns[cheap.id] = 2.5;
-      state.battle.enemy.nextPlay = randomBetween(2,4);
-      return;
-    }
+  // Avoid recently played cards for more variety
+  const freshPool = troopPool.filter(c => !state.battle.enemy.recentCards.includes(c.id));
+  const finalPool = freshPool.length ? freshPool : troopPool;
+
+  let pick = finalPool[Math.floor(Math.random()*finalPool.length)];
+
+  // Add diversity by role
+  const lastRole = state.battle.enemy.lastRole;
+  const role = classifyRole(pick);
+  if (lastRole && lastRole === role) {
+      const alt = finalPool.find(c => classifyRole(c) !== lastRole);
+      if (alt) pick = alt;
+  }
+  state.battle.enemy.lastRole = classifyRole(pick);
+
+  // Update recent card history
+  state.battle.enemy.recentCards.push(pick.id);
+  if (state.battle.enemy.recentCards.length > 3) {
+    state.battle.enemy.recentCards.shift();
   }
 
-  // 4. Default random valid troop
-  let troopPool = cards.filter(c => c.elixir <= elixir);
-
-  troopPool = troopPool.filter(c => {
-    if (!state.battle.enemy.cooldowns[c.id]) return true;
-    return Math.random() < 0.35;
-  });
-
-  if (troopPool.length < 3) {
-    const r = cards
-      .filter(c => c.elixir <= elixir)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 4);
-    troopPool = troopPool.concat(r);
-  }
-
-  if (troopPool.length) {
-    const pick = troopPool[Math.floor(Math.random()*troopPool.length)];
-    state.battle.enemy.elixir -= pick.elixir;
-    state.battle.enemy.lastCard = pick.id;
-    spawnEnemyUnit(pick);
-    state.battle.enemy.cooldowns[pick.id] = 2.5;
-  }
-
-  state.battle.enemy.nextPlay = randomBetween(3,6);
+  state.battle.enemy.elixir -= pick.elixir;
+  state.battle.enemy.lastCard = pick.id;
+  spawnEnemyUnit(pick);
+  state.battle.enemy.cooldowns[pick.id] = 3.5;
+  state.battle.enemy.nextPlay = randomBetween(3, 6);
 }
 
 function renderBattleHUD() {
