@@ -886,18 +886,57 @@ function spawnEnemyUnit(card, offsetIndex = 0) {
   spawnUnit(card, 'enemy', { x, y, lane });
 }
 
-function spawnUnit(card, side, position) {
-  const count = card.spawnCount || 1;
-  for (let i = 0; i < count; i += 1) {
-    const offsetIndex = i - (count - 1) / 2;
-    const spreadX = offsetIndex * (UNIT_RADIUS * 0.9);
-    const spreadY = Math.abs(offsetIndex) * 6;
-    const unit = createUnit(card, side, position.lane, position.x + spreadX, position.y + spreadY);
-    state.battle.units.push(unit);
-    elements.arenaField.appendChild(unit.element);
-  }
-}
+function spawnEnemyUnit(card, offsetIndex = 0) {
+  const lane = ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
 
+  const mode = pickEnemySpawnMode();
+  const pos = pickEnemySpawnPosition({ mode, lane, offsetIndex });
+
+  spawnUnit(card, 'enemy', { x: pos.x, y: pos.y, lane });
+}
+function pickEnemySpawnMode() {
+  if (enemyUnderThreat()) return "defensive";
+  if (detectActiveFight()) return "fight";
+  if (state.battle.enemy.lastCombo) return "aggressive";
+  if (state.battle.enemy.elixir >= 7) return "aggressive";
+  return "fight";
+}
+function pickEnemySpawnPosition({ mode, lane, offsetIndex }) {
+  const { height } = getArenaDimensions();
+  const riverY = height / 2;
+  const laneX = getLaneAnchorX(lane);
+
+  if (mode === "defensive") {
+    return {
+      x: laneX + offsetIndex * 20,
+      y: randomBetween(70, 140)
+    };
+  }
+
+  if (mode === "fight") {
+    return {
+      x: laneX + offsetIndex * 20,
+      y: randomBetween(riverY - 200, riverY - 100)
+    };
+  }
+
+  if (mode === "aggressive") {
+    return {
+      x: laneX + offsetIndex * 20,
+      y: riverY - randomBetween(20, 40)
+    };
+  }
+
+  return { x: laneX, y: riverY - 50 };
+}
+function detectActiveFight() {
+  const units = state.battle.units.filter(u => !u.done && u.hp > 0);
+  const { height } = getArenaDimensions();
+  const riverY = height / 2;
+
+  const cluster = units.filter(u => Math.abs(u.y - riverY) < 200);
+  return cluster.length >= 3;
+}
 function createUnit(card, side, lane, x, y) {
   const { x: adjustedX, y: adjustedY } = clampPointToArena(x - UNIT_RADIUS, y - UNIT_RADIUS);
   const targetKey = resolveTargetTower(side, lane);
