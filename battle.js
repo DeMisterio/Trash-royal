@@ -569,6 +569,13 @@ function showEmote(emote, side) {
 function updateEnemyAI(delta) {
   if (!state.battle) return;
 
+  // --- Enemy cooldowns initialization and tick ---
+  state.battle.enemy.cooldowns = state.battle.enemy.cooldowns || {};
+  Object.keys(state.battle.enemy.cooldowns).forEach(id => {
+    state.battle.enemy.cooldowns[id] -= delta;
+    if (state.battle.enemy.cooldowns[id] <= 0) delete state.battle.enemy.cooldowns[id];
+  });
+
   // Emotes keep working normally
   state.battle.enemy.emoteTimer = (state.battle.enemy.emoteTimer || 0) - delta;
   if (state.battle.enemy.emoteTimer <= 0) {
@@ -629,7 +636,7 @@ function updateEnemyAI(delta) {
       const comboCost = chosenCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
 
       if (elixir < comboCost) {
-          state.battle.enemy.nextPlay = randomBetween(1.5, 2.3);
+          state.battle.enemy.nextPlay = randomBetween(2.5, 4.0);
           return;
       }
 
@@ -637,6 +644,7 @@ function updateEnemyAI(delta) {
           const card = state.characters[id];
           state.battle.enemy.elixir -= card.elixir;
           spawnEnemyUnit(card);
+          state.battle.enemy.cooldowns[card.id] = 2.5;
           state.battle.enemy.lastCard = id;
       }
 
@@ -681,6 +689,7 @@ function updateEnemyAI(delta) {
     if (finisher) {
       state.battle.enemy.elixir -= finisher.elixir;
       spawnEnemyUnit(finisher);
+      state.battle.enemy.cooldowns[finisher.id] = 2.5;
       state.battle.enemy.nextPlay = randomBetween(2,4);
       return;
     }
@@ -693,8 +702,10 @@ function updateEnemyAI(delta) {
   if (tank && support && tank.elixir + support.elixir <= elixir) {
     state.battle.enemy.elixir -= tank.elixir;
     spawnEnemyUnit(tank);
+    state.battle.enemy.cooldowns[tank.id] = 2.5;
     state.battle.enemy.elixir -= support.elixir;
     spawnEnemyUnit(support);
+    state.battle.enemy.cooldowns[support.id] = 2.5;
     state.battle.enemy.nextPlay = randomBetween(4,7);
     return;
   }
@@ -705,18 +716,20 @@ function updateEnemyAI(delta) {
     if (cheap) {
       state.battle.enemy.elixir -= cheap.elixir;
       spawnEnemyUnit(cheap);
+      state.battle.enemy.cooldowns[cheap.id] = 2.5;
       state.battle.enemy.nextPlay = randomBetween(2,4);
       return;
     }
   }
 
   // 4. Default random valid troop
-  const troopPool = cards.filter(c => c.elixir <= elixir && c.id !== state.battle.enemy.lastCard);
+  const troopPool = cards.filter(c => c.elixir <= elixir && !state.battle.enemy.cooldowns[c.id]);
   if (troopPool.length) {
     const pick = troopPool[Math.floor(Math.random()*troopPool.length)];
     state.battle.enemy.elixir -= pick.elixir;
     state.battle.enemy.lastCard = pick.id;
     spawnEnemyUnit(pick);
+    state.battle.enemy.cooldowns[pick.id] = 2.5;
   }
 
   state.battle.enemy.nextPlay = randomBetween(3,6);
