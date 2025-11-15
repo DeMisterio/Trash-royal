@@ -584,12 +584,15 @@ function enemyUnderThreat() {
 }
 
 function enemyUnderPressure() {
-    return state.battle.units.some(u =>
-        u.side === "friendly" &&
-        !u.done &&
-        u.hp > 0 &&
-        u.y < state.battle.arenaHeight * 0.40
-    );
+  if (!state.battle) return false;
+  const { height } = getArenaDimensions();
+  if (!height) return false;
+  return state.battle.units.some(u =>
+    u.side === "friendly" &&
+    !u.done &&
+    u.hp > 0 &&
+    u.y < height * 0.40
+  );
 }
 
 function updateEnemyAI(delta) {
@@ -622,22 +625,6 @@ function updateEnemyAI(delta) {
   // ---------------------------
   // SMART AI WITH CONTROL
   // ---------------------------
-
-  function enemyUnderThreat() {
-      const low = ['enemy-left','enemy-right','enemy-king'].some(k => {
-          const t = state.battle.towers[k];
-          return t && t.hp < t.max * 0.30;
-      });
-
-      const manyEnemiesNear = state.battle.units.filter(u =>
-          u.side === 'friendly' &&
-          !u.done &&
-          u.hp > 0 &&
-          u.y < state.battle.towerPositions['enemy-king'].y + 120
-      ).length >= 2;
-
-      return low || manyEnemiesNear;
-  }
 
   const underThreat = enemyUnderThreat();
   const elixir = state.battle.enemy.elixir;
@@ -911,7 +898,6 @@ function spawnEnemyUnit(card, offsetIndex = 0) {
   spawnUnit(card, 'enemy', { x: pos.x, y: pos.y, lane });
 }
 function pickEnemySpawnMode() {
-  if (typeof enemyUnderThreat !== 'function') return "fight";
   if (enemyUnderThreat()) return "defensive";
   if (detectActiveFight()) return "fight";
   if (state.battle.enemy.lastCombo) return "aggressive";
@@ -1229,7 +1215,7 @@ function updateUnits(delta) {
       const dy = currentTarget.y - unit.y;
       const dist = Math.hypot(dx, dy);
       
-      if (dist < 5) {
+      if (dist < 12) {
         // Reached waypoint
         unit.currentPathIndex++;
         if (unit.currentPathIndex >= unit.path.length) {
@@ -1242,17 +1228,6 @@ function updateUnits(delta) {
         const newX = unit.x + moveX;
         const newY = unit.y + moveY;
 
-        // CR rule: units must not walk backwards, but allow small Y wiggle (±4px)
-        const tol = 4;
-        const goingBackwards =
-          (unit.side === 'friendly' && newY > unit.y + tol) ||
-          (unit.side === 'enemy' && newY < unit.y - tol);
-
-        if (goingBackwards) {
-          unit.path = findPathToTarget(unit);
-          unit.currentPathIndex = 0;
-          return true;
-        }
 
         const willBeInRiver = isInRiver(newX, newY);
         const willBeOnBridge = isOnBridge(newX, newY);
@@ -1345,6 +1320,9 @@ function castSpell(card, position) {
   damageTower(key, damage, 'friendly');
   elements.battleStatus.textContent = `${card.name} hits ${key.replace('-', ' ')}!`;
 }
+
+
+
 
 function createSpellIndicator(x, y, radius) {
   elements.spellRadius.style.width = `${radius * 2}px`;
