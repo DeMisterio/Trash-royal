@@ -566,6 +566,23 @@ function showEmote(emote, side) {
   }, 2000);
 }
 
+
+
+function enemyUnderThreat() {
+  if (!state.battle) return false;
+  const lowTower = ['enemy-left','enemy-right','enemy-king'].some(k => {
+    const t = state.battle.towers[k];
+    return t && t.hp < t.max * 0.30;
+  });
+  const manyEnemiesNear = state.battle.units.filter(u =>
+    u.side === 'friendly' &&
+    !u.done &&
+    u.hp > 0 &&
+    u.y < state.battle.towerPositions['enemy-king'].y + 120
+  ).length >= 2;
+  return lowTower || manyEnemiesNear;
+}
+
 function enemyUnderPressure() {
     return state.battle.units.some(u =>
         u.side === "friendly" &&
@@ -870,6 +887,15 @@ function cycleCard(cardId) {
     state.battle.hand[index] = nextCard;
     state.battle.nextIndex += 1;
   }
+}
+
+// Spawns a unit for a given card, side, and position
+function spawnUnit(card, side, position) {
+  const lane = position.lane || 'middle';
+  const unit = createUnit(card, side, lane, position.x, position.y);
+  state.battle.units.push(unit);
+  elements.arenaField.appendChild(unit.element);
+  return unit;
 }
 
 function spawnFriendlyUnit(card, position) {
