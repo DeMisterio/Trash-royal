@@ -878,16 +878,6 @@ function spawnFriendlyUnit(card, position) {
 
 function spawnEnemyUnit(card, offsetIndex = 0) {
   const lane = ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
-  
-  // Расставляем комбо юниты рядом, плотной пачкой
-  const x = getLaneAnchorX(lane) + offsetIndex * 20;
-  const y = UNIT_RADIUS + 10 + offsetIndex * 15;
-
-  spawnUnit(card, 'enemy', { x, y, lane });
-}
-
-function spawnEnemyUnit(card, offsetIndex = 0) {
-  const lane = ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
 
   const mode = pickEnemySpawnMode();
   const pos = pickEnemySpawnPosition({ mode, lane, offsetIndex });
