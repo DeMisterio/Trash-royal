@@ -628,11 +628,50 @@ function updateEnemyAI(delta) {
 
   const underThreat = enemyUnderThreat();
   const elixir = state.battle.enemy.elixir;
-  if (elixir < 6) {
+  // SMART ELIXIR LOGIC FOR COMBO PREP
+  const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
+  const deckCards = deckIds.map(id => state.characters[id]).filter(c => c);
+  const combosRaw = generateSmartCombos(deckCards);
+  const combosSorted = combosRaw.sort((a, b) => {
+    const costA = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+    const costB = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+    return costA - costB;
+  });
+
+  // Find the cheapest viable combo
+  const bestCombo = combosSorted[0] || [];
+  const totalComboCost = bestCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+
+  if (elixir < totalComboCost) {
+    // If combo is too expensive, play partial subset under 6 elixir first
+    const partial = [];
+    let partialCost = 0;
+    for (const id of bestCombo) {
+      const cost = state.characters[id]?.elixir || 0;
+      if (partialCost + cost <= 6) {
+        partial.push(id);
+        partialCost += cost;
+      }
+    }
+
+    // Play partial cards if any
+    if (partial.length > 0) {
+      let idx = 0;
+      for (const id of partial) {
+        const card = state.characters[id];
+        state.battle.enemy.elixir -= card.elixir;
+        spawnEnemyUnit(card, idx);
+        state.battle.enemy.lastCard = id;
+        idx++;
+      }
+      state.battle.enemy.nextPlay = randomBetween(2.0, 3.0);
+      return;
+    }
+
+    // If even partial is impossible, just wait until elixir covers totalComboCost
     state.battle.enemy.nextPlay = randomBetween(1.5, 2.5);
     return;
   }
-  const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
   const cards = deckIds.map(id => state.characters[id]).filter(c=>c);
   const availableCards = cards.filter(c => {
     const cd = state.battle.enemy.cooldowns[c.id];
@@ -688,6 +727,7 @@ function updateEnemyAI(delta) {
 
   // --- MODERN fallback logic: use availableCards, avoid repeats, diversify roles ---
   state.battle.enemy.nextPlay -= delta;
+  // Track last 4 unique cards to avoid spammy behaviour
   state.battle.enemy.recentCards = state.battle.enemy.recentCards || [];
 
   let troopPool = availableCards.filter(c => c.elixir <= elixir);
@@ -716,9 +756,11 @@ function updateEnemyAI(delta) {
   }
   state.battle.enemy.lastRole = classifyRole(pick);
 
-  // Update recent card history
-  state.battle.enemy.recentCards.push(pick.id);
-  if (state.battle.enemy.recentCards.length > 3) {
+  // Track last 4 unique cards to avoid spammy behaviour
+  if (!state.battle.enemy.recentCards.includes(pick.id)) {
+    state.battle.enemy.recentCards.push(pick.id);
+  }
+  if (state.battle.enemy.recentCards.length > 4) {
     state.battle.enemy.recentCards.shift();
   }
 
@@ -934,11 +976,22 @@ function pickEnemySpawnPosition({ mode, lane, offsetIndex }) {
 }
 function detectActiveFight() {
   const units = state.battle.units.filter(u => !u.done && u.hp > 0);
-  const { height } = getArenaDimensions();
-  const riverY = height / 2;
+  if (units.length < 2) return false;
 
-  const cluster = units.filter(u => Math.abs(u.y - riverY) < 200);
-  return cluster.length >= 3;
+  // Detect clustered combat by proximity of enemy and friendly units
+  for (let i = 0; i < units.length; i++) {
+    const a = units[i];
+    for (let j = i + 1; j < units.length; j++) {
+      const b = units[j];
+      if (a.side !== b.side) {
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (dist < 250) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 function createUnit(card, side, lane, x, y) {
   const { x: adjustedX, y: adjustedY } = clampPointToArena(x - UNIT_RADIUS, y - UNIT_RADIUS);
