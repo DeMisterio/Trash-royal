@@ -668,13 +668,15 @@ function updateEnemyAI(delta) {
           state.battle.enemy.nextPlay = randomBetween(3.0, 5.0);
           return;
       }
+      let comboIndex = 0;
       for (const id of chosenCombo) {
           const card = state.characters[id];
           state.battle.enemy.elixir -= card.elixir;
-          spawnEnemyUnit(card);
-          state.battle.enemy.cooldowns[card.id] = enemyUnderPressure() ? 1.0 : 3.0;
+          spawnEnemyUnit(card, comboIndex);   // ставим рядом
           state.battle.enemy.lastCard = id;
+          comboIndex++;
       }
+// никакого кулдауна для комбо!
       state.battle.enemy.lastCombo = chosenCombo;
       state.battle.enemy.nextPlay = randomBetween(3, 6);
       return;
@@ -874,10 +876,13 @@ function spawnFriendlyUnit(card, position) {
   spawnUnit(card, 'friendly', position);
 }
 
-function spawnEnemyUnit(card) {
+function spawnEnemyUnit(card, offsetIndex = 0) {
   const lane = ['left', 'middle', 'right'][Math.floor(Math.random() * 3)];
-  const x = getLaneAnchorX(lane);
-  const y = UNIT_RADIUS + 10;
+  
+  // Расставляем комбо юниты рядом, плотной пачкой
+  const x = getLaneAnchorX(lane) + offsetIndex * 20;
+  const y = UNIT_RADIUS + 10 + offsetIndex * 15;
+
   spawnUnit(card, 'enemy', { x, y, lane });
 }
 
