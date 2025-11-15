@@ -5,6 +5,7 @@
   "highlights": [
     "Smarter Enemy AI: The bot now forms role-based combos, waits for elixir, avoids repeating cards, reacts to danger, and switches playstyle instead of spamming one troop.",
     "Battle Logic Stability Fixes",
-    "Character Loading + Deck Isolation: Enemy decks are now independent from the player’s,"
+    "Character Loading + Deck Isolation: Enemy decks are now independent from the player’s.",
+    "NPC has been buffed up to 40%"
   ]
 }
