@@ -619,112 +619,73 @@ function updateEnemyAI(delta) {
   }
 
   // COMBO INTELLIGENCE
-  state.battle.enemy.nextPlay -= delta;
-  if (state.battle.enemy.nextPlay > 0) return;
+  // ==========================
+  // SMART ELIXIR / COMBO LOGIC (NEW)
+  // ==========================
+  // Prevent back-to-back combos (human-like pacing)
+  state.battle.enemy.lastComboTime = state.battle.enemy.lastComboTime || 0;
+  const now = performance.now();
+  if (now - state.battle.enemy.lastComboTime < randomBetween(3500, 5500)) {
+      state.battle.enemy.nextPlay = randomBetween(1.2, 2.2);
+      return;
+  }
 
-  // ---------------------------
-  // SMART AI WITH CONTROL
-  // ---------------------------
-
-  const underThreat = enemyUnderThreat();
-  const elixir = state.battle.enemy.elixir;
-  // SMART ELIXIR LOGIC FOR COMBO PREP
   const deckIds = state.battle.opponent?.deckIds || getAvailableCardIds();
   const deckCards = deckIds.map(id => state.characters[id]).filter(c => c);
-  const combosRaw = generateSmartCombos(deckCards);
-  const combosSorted = combosRaw.sort((a, b) => {
-    const costA = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-    const costB = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-    return costA - costB;
+
+  // Generate combos
+  const combos = generateSmartCombos(deckCards).sort((a, b) => {
+    const aCost = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+    const bCost = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+    return aCost - bCost;
   });
 
-  // Find the cheapest viable combo
-  const bestCombo = combosSorted[0] || [];
-  const totalComboCost = bestCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+  const bestCombo = combos[0] || [];
+  const totalCost = bestCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
+  const elixir = state.battle.enemy.elixir;
 
-  if (elixir < totalComboCost) {
-    // If combo is too expensive, play partial subset under 6 elixir first
-    const partial = [];
-    let partialCost = 0;
-    for (const id of bestCombo) {
+  // Build partial combo (≤6 elixir)
+  let partial = [];
+  let partialCost = 0;
+  for (const id of bestCombo) {
       const cost = state.characters[id]?.elixir || 0;
       if (partialCost + cost <= 6) {
-        partial.push(id);
-        partialCost += cost;
+          partial.push(id);
+          partialCost += cost;
       }
-    }
+  }
 
-    // Play partial cards if any
-    if (partial.length > 0) {
+  // RULE 1 - Full combo available
+  if (elixir >= totalCost) {
       let idx = 0;
-      for (const id of partial) {
-        const card = state.characters[id];
-        state.battle.enemy.elixir -= card.elixir;
-        spawnEnemyUnit(card, idx);
-        state.battle.enemy.lastCard = id;
-        idx++;
-      }
-      state.battle.enemy.nextPlay = randomBetween(2.0, 3.0);
-      return;
-    }
-
-    // If even partial is impossible, just wait until elixir covers totalComboCost
-    state.battle.enemy.nextPlay = randomBetween(1.5, 2.5);
-    return;
-  }
-  const cards = deckIds.map(id => state.characters[id]).filter(c=>c);
-  const availableCards = cards.filter(c => {
-    const cd = state.battle.enemy.cooldowns[c.id];
-    return !cd || cd <= 0;
-  });
-
-  const smartCombos = generateSmartCombos(cards);
-
-  if (smartCombos.length < 3) {
-    for (let i = 0; i < 5; i++) {
-      const a = cards[Math.floor(Math.random() * cards.length)];
-      const b = cards[Math.floor(Math.random() * cards.length)];
-      if (a && b && a.id !== b.id) {
-        smartCombos.push([a.id, b.id]);
-        if (Math.random() < 0.3) {
-          const c = cards[Math.floor(Math.random() * cards.length)];
-          if (c && c.id !== a.id && c.id !== b.id) {
-            smartCombos.push([a.id, b.id, c.id]);
-          }
-        }
-      }
-    }
-  }
-
-  const wantsCombo = !underThreat && !enemyUnderPressure() && Math.random() < 0.35;
-
-  let chosenCombo = null;
-  if (!underThreat && wantsCombo && smartCombos.length) {
-      const sorted = smartCombos.sort((a,b) => {
-          const costA = a.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-          const costB = b.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-          return costB - costA;
-      });
-      chosenCombo = sorted[0];
-      const comboCost = chosenCombo.reduce((s,id)=>s+(state.characters[id]?.elixir||0),0);
-      if (elixir < comboCost) {
-          state.battle.enemy.nextPlay = randomBetween(3.0, 5.0);
-          return;
-      }
-      let comboIndex = 0;
-      for (const id of chosenCombo) {
+      for (const id of bestCombo) {
           const card = state.characters[id];
           state.battle.enemy.elixir -= card.elixir;
-          spawnEnemyUnit(card, comboIndex);   // ставим рядом
+          spawnEnemyUnit(card, idx++);
           state.battle.enemy.lastCard = id;
-          comboIndex++;
       }
-// никакого кулдауна для комбо!
-      state.battle.enemy.lastCombo = chosenCombo;
-      state.battle.enemy.nextPlay = randomBetween(3, 6);
+      state.battle.enemy.lastComboTime = now;
+      state.battle.enemy.nextPlay = randomBetween(2.5, 3.8);
       return;
   }
 
+  // RULE 2 - Partial combo is strong (≥4 elixir)
+  if (partialCost >= 4 && elixir >= partialCost) {
+      let idx = 0;
+      for (const id of partial) {
+          const card = state.characters[id];
+          state.battle.enemy.elixir -= card.elixir;
+          spawnEnemyUnit(card, idx++);
+          state.battle.enemy.lastCard = id;
+      }
+      state.battle.enemy.lastComboTime = now;
+      state.battle.enemy.nextPlay = randomBetween(2.0, 3.0);
+      return;
+  }
+
+  // RULE 3 - Too cheap → wait for more elixir
+  state.battle.enemy.nextPlay = randomBetween(1.5, 2.5);
+  return;
   // --- MODERN fallback logic: use availableCards, avoid repeats, diversify roles ---
   state.battle.enemy.nextPlay -= delta;
   // Track last 4 unique cards to avoid spammy behaviour
