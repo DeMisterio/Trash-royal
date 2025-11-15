@@ -911,6 +911,7 @@ function spawnEnemyUnit(card, offsetIndex = 0) {
   spawnUnit(card, 'enemy', { x: pos.x, y: pos.y, lane });
 }
 function pickEnemySpawnMode() {
+  if (typeof enemyUnderThreat !== 'function') return "fight";
   if (enemyUnderThreat()) return "defensive";
   if (detectActiveFight()) return "fight";
   if (state.battle.enemy.lastCombo) return "aggressive";
